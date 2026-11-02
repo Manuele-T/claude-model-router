@@ -1,0 +1,36 @@
+# Benchmark data (contains local file paths)
+data/*
+!data/.gitkeep
+!data/tasks.md
+!data/tasks-v2.md
+!data/tasks-v3.md
+!data/tasks-v4.md
+!data/results.md
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Editor / OS
+.vscode/
+.DS_Store
+
+# Local Claude Code settings (machine-specific permissions)
+.claude/settings.local.json
+
+# Private planning notes
+BUILD_PLAN.md
