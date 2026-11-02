@@ -202,3 +202,7 @@ To rerun a benchmark task: `scripts/run_bench.sh <task> <A|B|C|D> [tag]` runs on
 ## Credits
 
 The routing skill's design (default to Haiku, escalate only with a reason, a routing log, user overrides) follows [Maleko91/claude-code-adaptive-subagents](https://github.com/Maleko91/claude-code-adaptive-subagents), which reports 3-15x token savings. The `SKILL.md` here was written separately. What this repo adds is the checker, which verifies which model actually ran, and the head-to-head comparison against forced Opus.
+
+## License
+
+[MIT](LICENSE). Use, modify and share it freely; keep the copyright notice so the credit stays with the work.
