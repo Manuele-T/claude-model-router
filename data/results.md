@@ -251,6 +251,7 @@ Percentages are savings (positive = cheaper than A). Mismatches 0, fallbacks 0. 
 | 31 "works with" links backed by a real import | 98%, 97% | 95%, 94% | 98%, 97% |
 | 32 issues found (of 35 verified) | 10, 16 | 18, 13 | 20, 11 |
 | 33 issues found (of 51 verified) | 38, 34 | 27, 27 | 26, 29 |
+| 33 re-checked (of 61 verified, 2026-11-04) | 41, 33 | 30, 28 | 30, 30 |
 | Wall time per run, 31 / 32 / 33 | ~300 / ~325 / ~890 s | ~186 / ~210 / ~190 s | ~176 / ~336 / ~260 s |
 | Subagents | 0 | 13 / 10 / 16, all Sonnet | 14 / 10 / 16, all Haiku |
 
@@ -262,7 +263,7 @@ How it was scored:
 What task set 4 shows:
 
 - **On the biggest job, routing finally saved money.** On 33 (80 doc pages) A had to read everything in one long session ($9.20, ~15 min); B and C split the pages across 8 parallel subagents and finished in 3-4 minutes for 57% and 84% less.
-- **But the savings cost thoroughness there.** On 33, A found 34-38 of 51 issues per run; B and C found 26-29. On the two smaller tasks, quality was level.
+- **But the savings cost thoroughness there.** On 33, A found 34-38 of 51 issues per run; B and C found 26-29. On the two smaller tasks, quality was level. (Re-checked on 2026-11-04 with every claim verified: A 41 and 33 of 61, B 30 and 28, C 30 and 30; see "Re-check of task 33" below.)
 - **Haiku is where the money is, and the skill never picks it on its own for this work.** B sent every batch to Sonnet ("needs code comprehension"); forcing Haiku saved 45-84% per task.
 - **Haiku's long-prompt rate matters.** Haiku 5.5 costs 5x more on prompts over 100K tokens; up to 45 of a C run's Haiku requests crossed that line. Pricing it raised C's cost by up to 36% on a task, without changing the result.
 
@@ -321,8 +322,24 @@ Distinct verified issues found by a setup's two runs together. A setup whose run
 | Task 22, rich (of 12) | 10, 10 → 10 | 8, 9 → 11 | 6, 9 → 10 | 9, 10 → 11 |
 | Task 32, beets reference (of 35) | 10, 16 → 17 | 10, 9 → 12 | 18, 13 → 23 | 20, 11 → 24 |
 | Task 33, beets plugins (of 51) | 38, 34 → 45 | 24, 29 → 30 | 27, 27 → 31 | 26, 29 → 34 |
+| Task 33 re-checked (of 61, see below) | 41, 33 → 44 | 27, 35 → 36 | 30, 28 → 35 | 30, 30 → 39 |
 
 Forced Opus's two runs overlap heavily (on rich they found exactly the same 10). The delegated setups' runs overlap less, so pooled they cover more on the smaller doc sets, but on the 80-page plugin check forced Opus still covers the most. Spontaneous Opus works alone too, but with shorter sessions it covers less than forced Opus on both beets checks.
+
+## Re-check of task 33, beets plugin docs (2026-11-04)
+
+A reader asked how the 51-issue list was built: if it leaned on the Opus runs, anything Haiku found outside it couldn't score. The list was the union of the A, B and C runs' findings, checked against the code by Claude Opus, but about 24 borderline or single-run claims had been left unverified (most from a Haiku run), and the list itself was never saved. So task 33 was re-scored the way v2 is: every claim from all 8 complete runs (A r1b/r2b, B r1b/r2, C r1b/r2b, D r1b/r2b), single-run ones included, grouped by page and checked against beets at `ab4bdfd`, again by Claude Opus. Borderline errors (same effect in practice, wrong counts, wording) are counted and flagged; about 20 claims that couldn't be confirmed or refuted from the code are left out and listed.
+
+| | Forced Opus (A) | Spontaneous Opus (D) | Skill-routed (B) | Forced Haiku (C) |
+| --- | --- | --- | --- | --- |
+| v1 score (of 51) | 38, 34 → 45 | 24, 29 → 30 | 27, 27 → 31 | 26, 29 → 34 |
+| Re-checked (of 61) | 41, 33 → **44** | 27, 35 → 36 | 30, 28 → 35 | 30, 30 → **39** |
+| Strict, without borderline (of 41) | 32, 26 → 34 | 24, 27 → 28 | 22, 21 → 24 | 22, 25 → 29 |
+
+- **Haiku was undercounted, and so were the others.** Per run, every setup gained; combined, Haiku gained the most (+5) and forced Opus went from 45 to 44. The two passes grouped and excluded claims slightly differently, so shifts of one or two are noise.
+- **The conclusion holds.** Forced Opus is still the most thorough on the 80-page check, by 5 combined instead of 11 (by 5 strict).
+- **The forced vs spontaneous gap shrinks.** Spontaneous Opus's r2b now scores 35, above forced Opus's r2b (33); combined, 36 against 44. Forced Opus still out-produces it, but "found far more" overstated it.
+- About 20 claims left out (not verified), from all setups. Same caveat as before: "of 61" counts errors found by any run, not true recall, and the judge is an Opus model.
 
 ## Across all three sets
 
@@ -342,3 +359,56 @@ The checker's "saving vs forced Opus" estimate overstated every routed set:
 The estimate overstated the saving on every set except beets B, where it understated it slightly. Forced Haiku is the only routed arm that never cost more than forced Opus.
 
 Spontaneous Opus (D) used no subagents anywhere, so the checker has nothing to re-price (estimate 0%). Head-to-head it cost 1% less than forced Opus on everyday tasks, 16% less on reading-heavy, 14% less on rich and 32% less on beets. Only the head-to-head numbers measure the real effect.
+
+## v2, Part 1: ~100k-line codebase (buildbot, tasks 41-43; 2026-11-03 to 2026-11-04)
+
+Prompts in `data/tasks-v5.md`: buildbot/buildbot at `c5cdcf3`, 408 hand-written modules (~91k lines) in `master/buildbot/` and `worker/buildbot_worker/`, excluding their `test/` packages. Three tasks, mirroring beets 31-33: summarise every module (41), check `changesources.rst` + `schedulers.rst` (3.7k lines) against the code (42), check the 85 pages in `steps/`, `reporters/` and `report_generators/` (6k lines) against the code (43). Each run cloned a one-commit local copy, so `git log` couldn't reveal anything.
+
+**Planted errors.** Before any run, 30 one-line doc edits were planted in that copy (10 in task 42's pages, 20 in task 43's: wrong defaults, renamed parameters, wrong module paths), each with a code reference, so recall on them is true recall. Real (non-planted) errors were collected from every run's findings and verified against the unmodified checkout, as in v1. They're reported separately and never added to the planted count.
+
+**Arms.** New baseline **F**, Opus only, blocked: no prompt prefix, Agent and Skill tools blocked, so no wording effect and no way to delegate. **D** Opus only, spontaneous (Skill blocked, Agent allowed), **B** skill-routed and **C** forced Haiku as before, with the same v1 skill. Each arm ran twice, interleaved; task 41 got a third F and C run because C's two costs were far apart. Percentages are against F.
+
+### Costs
+
+| Task | F | D | B | C |
+| --- | --- | --- | --- | --- |
+| 41 Module summaries | 2.70 / 3.40 / 3.61 → **3.24** | 3.46 / 2.46 → **2.96 (-9%)** | 5.06 / 3.52 → **4.29 (+32%)** | 1.08 / 3.03 / 1.11 → **1.74 (-46%)** |
+| 42 Reference docs (2 pages) | 1.56 / 1.72 → **1.64** | 1.16 / 1.41 → **1.29 (-22%)** | 1.83 / 2.21 → **2.02 (+23%)** | 0.81 / 0.72 → **0.77 (-53%)** |
+| 43 Steps and reporters docs (85 pages) | 3.96 / 4.25 → **4.11** | 4.19 / 3.84 → **4.02 (-2%)** | 3.84 / 3.92 → **3.88 (-5%)** | 1.85 / 2.01 → **1.93 (-53%)** |
+| **All three, mean per run** | **8.98** | **8.26 (-8%)** | **10.19 (+13%)** | **4.44 (-51%)** |
+
+Mismatches 0, fallbacks 0 in every run. The checker's own estimate (delegated tokens re-priced at Opus rates) was a 32-39% saving for B and 82-88% for C; head to head, B cost 5% less to 32% more, and C 46-53% less.
+
+| | F | D | B | C |
+| --- | --- | --- | --- | --- |
+| Wall time per run, 41 / 42 / 43 | ~615 / ~170 / ~400 s | ~670 / ~160 / ~535 s | ~265 / ~160 / ~270 s | ~265 / ~180 / ~390 s |
+| Subagents per run, 41 / 42 / 43 | 0 | 0 | 9-10 / 4 / 5-7, all Sonnet | 10-12 / 4-6 / 6-7, all Haiku |
+
+C r2 on 41 is the outlier ($3.03): its Haiku batches grew past 100K-token prompts (Haiku's 5x long-prompt rate) and it wrote twice as much (~30k words). The other two C runs cost $1.08 and $1.11.
+
+### Quality
+
+| | F | D | B | C |
+| --- | --- | --- | --- | --- |
+| 41 coverage (of 400) | 400, 400, 400 | 400, 400 | 400, 400 | 400, 400, 400 |
+| 41 "works with" links backed by a real import | 98%, 88%, 88% | 83%, 87% | 86%, 83% | 88%, 86%, 89% |
+| 42 planted errors (of 10) | 10, 10 | 10, 10 | 10, 10 | 10, 10 |
+| 42 real errors (of 42 verified) | 10, 17 → 22 | 9, 9 → 12 | 17, 21 → 26 | 20, 23 → **28** |
+| 43 planted errors (of 20) | 20, 20 | 20, 20 | 20, 20 | 20, 20 |
+| 43 real errors (of 92 verified) | 36, 38 → 49 | 39, 35 → 43 | 55, 70 → **77** | 58, 63 → 72 |
+
+"→" is the two runs combined. Without the borderline errors (task 42: 33 strict, task 43: 71 strict) the order is the same: on 42, F 18, D 11, B 24, C 24 combined; on 43, F 45, D 42, B 66, C 58.
+
+How it was scored:
+- **41:** `scripts/score_summaries.py` checks that every module has a heading, and checks every project module a section names against the AST import graph (in either direction). Mentions without an import are plausible indirect links, not errors. The 8 modules in buildbot's secret-provider package (`master/buildbot/secrets`) are left out of every run's score: a local permission rule blocked shell commands naming that path, and several runs also declined to read it, so coverage there measured the rule, not the setup. F r1's 98% came from computing every import with a script; the other runs listed fewer or looser links.
+- **42 and 43:** a run "found" an error when it named the page and the claim. The automatic scorers (`data/ground-truth/score42.py`, `score43.py`, local only) match line numbers within one line; a handful of correct finds with wrong line numbers (on 43: 2 in F r2, 5 in B r2) were counted by content. Real errors are the union of every run's claims, each checked against the unmodified code: 42 on task 42, 92 on task 43. About 15 claims couldn't be confirmed or refuted quickly and are left out, not counted as wrong; false positives weren't counted per run. "Of 42" and "of 92" count errors found by any run, not true recall; only the planted counts are true recall.
+- **Tags:** 42 C r1 and 43 B r2 hit the usage limit on their first attempt (one at 0 tokens, one after $0.77 of an unfinished run); both were deleted and re-run under the same tag.
+
+What Part 1 shows:
+
+- **Forced Haiku halved the cost on every task** (-46%, -53%, -53%) and found more real doc errors than Opus alone on both doc checks (per run, 20-23 against 9-17 on 42, and 58-63 against 35-39 on 43). On 42 its Haiku readers plus Opus re-checking beat every other setup; on 43 only B found more.
+- **This reverses beets.** There, forced Opus found the most on the 80-page check (44 of 61 after the re-check, against 35-39). At 100k lines, Opus alone made 80-105 turns and still covered less than 4-7 parallel readers whose findings Opus then re-checked.
+- **The skill still picked Sonnet for everything** ("needs code comprehension") and saved at most 5% against F. It was the most thorough on 43 (70 real errors in one run) and the fastest on 41 and 43.
+- **Opus left alone never delegated** (0 subagents in 7 D runs) and cost about the same as F, so blocking delegation changed nothing measurable here. D found the fewest real errors on 42.
+- **The planted errors were too easy.** Every run caught all 30, so the real errors are what separate the setups.
+- **Run-to-run variance is large.** F's three 41 runs cost $2.70-3.61 and backed 88-98% of links; one C run cost 2.8x the other two.

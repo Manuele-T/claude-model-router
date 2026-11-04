@@ -165,20 +165,20 @@ CHARTS = {
          ]),
          section("Biggest job: plugin docs check", "80 doc pages, mean of 2 runs", [
             {**OPUS, "cost": 9.20, "small": "~15 min per run",
-             "quality": ["38 and 34 of 51 (45 combined)"]},
+             "quality": ["41 and 33 of 61 (44 combined)"]},
             {**NAT, "small": "~9 min per run", "cost": 6.01, "delta": "−35%",
-             "quality": ["24 and 29 of 51 (30 combined)"]},
+             "quality": ["27 and 35 of 61 (36 combined)"]},
             {"name": "Skill-routed", "models": "Opus + 8 Sonnet", "small": "~3 min per run", "kind": "routed",
-             "cost": 3.95, "delta": "−57%", "quality": ["27 and 27 of 51 (31 combined)"]},
+             "cost": 3.95, "delta": "−57%", "quality": ["30 and 28 of 61 (35 combined)"]},
             {"name": "Forced Haiku", "models": "Opus + 8 Haiku", "small": "~4 min per run", "kind": "haiku",
-             "cost": 1.49, "delta": "−84%", "quality": ["26 and 29 of 51 (34 combined)"]},
+             "cost": 1.49, "delta": "−84%", "quality": ["30 and 30 of 61 (39 combined)"]},
          ])],
         ["<b>Summaries:</b> one paragraph for every module, saying what it does and which other modules it "
          "works with. Scored on coverage (all 167 modules) and by checking each named module link against the "
          "real imports: 97-98% backed for both Opus-only setups and forced Haiku, 94-95% for skill-routed.",
          "<b>Reference docs:</b> check 5 reference pages against the code. The score is how many of the 35 "
          "known out-of-date or wrong claims each run found (two runs per setup). <b>Combined</b> = distinct issues found by the two runs together.",
-         "<b>Plugin docs:</b> the same check on all 80 plugin pages, against 51 known issues. The cost of the "
+         "<b>Plugin docs:</b> the same check on all 80 plugin pages, against 61 known issues (re-checked: every run's claims verified). The cost of the "
          "plugin check is included in the \"All three tasks\" total above."],
         [("Skill-routed", "34%", "actually 38% cheaper"),
          ("Forced Haiku", "85%", "actually 75% cheaper")],

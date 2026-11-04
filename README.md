@@ -32,7 +32,7 @@ I wanted to see whether, and how, Claude Opus decides to spawn subagents, and wh
   <img src="charts/larger-codebase.png" alt="Larger codebase: spontaneous Opus cost 14% less than forced Opus, skill-routed runs 11% more and forced Haiku 41% less; the checker estimated savings of 45% and 84%" width="800">
 </p>
 
-**Largest codebase (beets, ~52k lines): delegation finally paid.** Forced Opus worked hardest and found the most on the 80-page docs check (45 of 51 issues combined, against 30-34 for the others), but one long session cost $9 per run. Forced Haiku cost 75% less overall and found the most on the reference docs (24 of 35 combined, against 17); skill routing cost 38% less.
+**Largest codebase (beets, ~52k lines): delegation finally paid.** Forced Opus worked hardest and found the most on the 80-page docs check (44 of 61 issues combined after a re-check, against 35-39 for the others; first scored as 45 of 51 against 30-34), but one long session cost $9 per run. Forced Haiku cost 75% less overall and found the most on the reference docs (24 of 35 combined, against 17); skill routing cost 38% less.
 
 <p align="center">
   <img src="charts/largest-codebase.png" alt="Largest codebase: spontaneous Opus cost 32% less than forced Opus, skill-routed runs 38% less and forced Haiku 75% less; on the 80-page docs check all three found fewer issues" width="800">
@@ -46,7 +46,32 @@ Across all three:
 
 **Takeaway: cheaper tokens don't necessarily mean cheaper tasks. Measure the whole workflow, not just the price of each model.**
 
-The full write-up follows.
+The full write-up follows. v1 as first published is tagged [`v1.0`](https://github.com/Manuele-T/claude-model-router/tree/v1.0).
+
+## v2 (in progress): ~100k-line codebase
+
+v2 adds a fourth, bigger codebase, [buildbot](https://github.com/buildbot/buildbot) (408 modules, ~91k lines), with the same three task types as beets. Two changes make it stricter than v1:
+
+- **A neutral baseline.** "Opus only, blocked" gets no prompt prefix; the Agent and Skill tools are blocked, so it can't delegate and isn't told anything. v1's forced Opus was told `no routing.`, which turned out to change how hard it worked.
+- **Planted errors.** Before any run, 30 wrong claims were planted in the doc pages (wrong defaults, renamed parameters), so recall on them is true recall. Real errors found by the runs were verified against the code and counted separately.
+
+Each setup ran twice (three times where results were far apart), with the same v1 skill:
+
+| | Opus only, blocked | Opus only, spontaneous | Skill-routed | Forced Haiku |
+| --- | --- | --- | --- | --- |
+| Estimated cost, all three tasks, mean per run | $8.98 | $8.26 (-8%) | $10.19 (+13%) | $4.44 (-51%) |
+| Module summaries: modules covered | all | all | all | all |
+| Planted doc errors found (of 30) | 30, 30 | 30, 30 | 30, 30 | 30, 30 |
+| Real doc errors, 2-page check (of 42 verified) | 10 and 17 (22 combined) | 9 and 9 (12 combined) | 17 and 21 (26 combined) | 20 and 23 (28 combined) |
+| Real doc errors, 85-page check (of 92 verified) | 36 and 38 (49 combined) | 39 and 35 (43 combined) | 55 and 70 (77 combined) | 58 and 63 (72 combined) |
+| Subagents | 0 | 0 | 4-10 per task, all Sonnet | 4-12 per task, all Haiku |
+
+- **Forced Haiku halved the cost on every task and found more than Opus alone on both doc checks.** This reverses beets, where Opus alone was the most thorough on the biggest check. At this size, a single Opus session covers less than several parallel readers whose findings Opus then re-checks.
+- **The skill still sent everything to Sonnet.** It was the most thorough on the 85-page check, but it saved at most 5% and cost 13% more overall.
+- **Left alone, Opus still never delegated** (0 subagents in 7 runs) and cost about the same as blocked Opus.
+- **Every run caught every planted error**, so they were too easy; the real errors are what separate the setups.
+
+Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per setup, and "of 42/92" counts errors found by any run, not true recall. Per-run numbers and the scoring rules are in [`data/results.md`](data/results.md). Still to come: tasks that build new code rather than read it.
 
 ## How it works
 
@@ -122,13 +147,15 @@ Spontaneous Opus still worked alone, 14% cheaper than forced Opus with similar q
 | Plugin docs check (80 pages) | $9.20 | $6.01 (-35%) | $3.95 (-57%) | $1.49 (-84%) |
 | **All three, mean per run** | **$13.49** | **$9.20 (-32%)** | **$8.34 (-38%)** | **$3.33 (-75%)** |
 | Reference doc issues found (of 35 verified) | 10 and 16 (17 combined) | 10 and 9 (12 combined) | 18 and 13 (23 combined) | 20 and 11 (24 combined) |
-| Plugin doc issues found (of 51 verified) | 38 and 34 (45 combined) | 24 and 29 (30 combined) | 27 and 27 (31 combined) | 26 and 29 (34 combined) |
+| Plugin doc issues found (of 61 verified, re-checked*) | 41 and 33 (44 combined) | 27 and 35 (36 combined) | 30 and 28 (35 combined) | 30 and 30 (39 combined) |
 | Plugin docs check, wall time per run | ~15 min | ~9 min | ~3 min | ~4 min |
 | Subagents | 0 | 0 | 39, all Sonnet | 40, all Haiku |
 
-This is the first codebase where skill routing saved money. On the plugin docs, Opus alone had to read 80 pages in one long session; the delegated setups split them across 8 parallel subagents and finished in a quarter of the time. The cost was thoroughness: both found about a quarter fewer real problems than forced Opus. On the summaries and the reference docs, quality was level across the forced Opus and delegated setups.
+\* First scored against 51 issues (38 and 34, 24 and 29, 27 and 27, 26 and 29). A reader pointed out that about 24 single-run or borderline claims, mostly from a Haiku run, had never been verified, so every claim from all 8 runs was re-checked against the code (details in [`data/results.md`](data/results.md)). Haiku gained the most; the order didn't change.
 
-Spontaneous Opus still didn't delegate, even on 80 pages. It cost 32% less than forced Opus because its sessions were shorter, and it found less for the same reason: on the plugin docs, about as few issues as the delegated setups, at four times forced Haiku's cost.
+This is the first codebase where skill routing saved money. On the plugin docs, Opus alone had to read 80 pages in one long session; the delegated setups split them across 8 parallel subagents and finished in a quarter of the time. The cost was thoroughness: per run, both found roughly 10-30% fewer real problems than forced Opus. On the summaries and the reference docs, quality was level across the forced Opus and delegated setups.
+
+Spontaneous Opus still didn't delegate, even on 80 pages. It cost 32% less than forced Opus because its sessions were shorter, and it found less for the same reason: on the plugin docs, about as many issues as the delegated setups (36 combined, against 44), at four times forced Haiku's cost.
 
 Left to choose, the orchestrator sent every batch to Sonnet. Forcing Haiku is what produced the big savings, at 75% less than forced Opus overall.
 
@@ -166,7 +193,7 @@ Opus 5.5 is not cheaper per token: it costs 2x Sonnet 5.5 and 40x Haiku 5.5. On 
 
 In some runs the cheaper models also used more tokens for their part of the work than Opus needed for the whole job: on the rich module summaries, the subagents wrote 30k and 52k output tokens, against 15-19k for an entire forced Opus run. My hypothesis is that Opus often solves these tasks with fewer total tokens, while delegation adds coordination and verification costs. The experiment supports this, but it doesn't separate the effect of model capability from workflow overhead.
 
-**Why forced Opus cost more than spontaneous Opus.** Both are Opus working alone on the same Claude Code version, yet forced Opus cost more on every task set and, on the 80-page beets check, found far more (38 and 34 of 51 issues, against 24 and 29). The transcripts show it put in more effort: every forced run produced more output, thinking included, than every spontaneous run on the same task (beets reference docs: 22-27k output tokens per run against 17-22k; plugin docs: 44-50k against 31-34k). On the plugin docs it worked one plugin at a time, reading each page and then that plugin's code, while one spontaneous run read 5-10 pages per command and thought about a third as much. Each extra turn also re-reads the whole context, so the extra effort costs more than its own tokens. The thinking itself is encrypted in the transcripts, so why it works harder is a guess. What every forced run had in common was the `no routing.` instruction with the router skill visible in its tool list (most forced runs could still have spawned subagents; only the later beets runs blocked them). Being told not to delegate seems to make Opus plan to cover everything itself. In a follow-up, the instruction without the skill visible, and blocking subagents without the instruction, both landed in between. With 2-4 runs per setup, the size of the effect is uncertain: forced Opus on its own found anywhere from 10 to 16 of 35 issues on the same task (details in [`data/results.md`](data/results.md)).
+**Why forced Opus cost more than spontaneous Opus.** Both are Opus working alone on the same Claude Code version, yet forced Opus cost more on every task set and, on the 80-page beets check, found more (41 and 33 of 61 issues after the re-check, against 27 and 35; 44 against 36 combined). The transcripts show it put in more effort: every forced run produced more output, thinking included, than every spontaneous run on the same task (beets reference docs: 22-27k output tokens per run against 17-22k; plugin docs: 44-50k against 31-34k). On the plugin docs it worked one plugin at a time, reading each page and then that plugin's code, while one spontaneous run read 5-10 pages per command and thought about a third as much. Each extra turn also re-reads the whole context, so the extra effort costs more than its own tokens. The thinking itself is encrypted in the transcripts, so why it works harder is a guess. What every forced run had in common was the `no routing.` instruction with the router skill visible in its tool list (most forced runs could still have spawned subagents; only the later beets runs blocked them). Being told not to delegate seems to make Opus plan to cover everything itself. In a follow-up, the instruction without the skill visible, and blocking subagents without the instruction, both landed in between. With 2-4 runs per setup, the size of the effect is uncertain: forced Opus on its own found anywhere from 10 to 16 of 35 issues on the same task (details in [`data/results.md`](data/results.md)).
 
 **Why it paid on beets.** On the 80-page plugin docs check, Opus alone ran one session of about 150 turns and re-read roughly 32 million cached tokens, so even cheap cache reads added up to $9 per run. The delegated runs split the pages across 8 subagents with small contexts each; the coordinating Opus cost about $1. Once the job is that big, the overhead of briefing and checking is small next to the reading it saves.
 
@@ -183,7 +210,7 @@ Routing choices were not stable, though. With identical prompts, routes often ch
 - Costs use API list prices as a proxy for subscription usage; Anthropic doesn't publish the exact subscription weighting.
 - On the everyday task set, each arm ran once; the other sets ran each arm twice.
 - Opus alone varies a lot from run to run (forced Opus found 10 to 16 of 35 issues on the same task), so the gap between forced and spontaneous Opus is consistent in direction but uncertain in size.
-- Doc-check scores count only issues I verified against the code; borderline claims, mostly from the Haiku runs, are left out.
+- Doc-check scores count issues verified against the code by Claude Opus in a separate session, not by hand. On the smaller doc checks, borderline claims (mostly from the Haiku runs) are left out; the 80-page beets check was re-scored with every claim from every run verified, borderline ones counted, and about 20 unverifiable claims left out.
 - rich is a famous library, and Opus said part of one summary came from its own knowledge of it. That favours the forced Opus arm. beets is much less famous, though one forced Opus run still named two module paths that no longer exist, which suggests it was working from memory.
 
 ## Setup
@@ -197,7 +224,7 @@ python3 scripts/verify_models.py --since 2026-10-25
 
 Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.` to turn it off.
 
-To rerun a benchmark task: `scripts/run_bench.sh <task> <A|B|C|D> [tag]` runs one row of `data/tasks.md` headless in a fresh clone of the bench project. Arm A also blocks the Agent tool, so a delegation rule in a global `CLAUDE.md` can't leak subagents into the forced Opus runs; arm D blocks the Skill tool instead, so the installed router skill can't turn a spontaneous run into a skill-routed one. Set `TASKS=data/tasks-v2.md`, `TASKS=data/tasks-v3.md` (with `SRC` pointing at a rich checkout) or `TASKS=data/tasks-v4.md` (with `SRC` pointing at a beets checkout) for the other task sets.
+To rerun a benchmark task: `scripts/run_bench.sh <task> <A|B|C|D|F> [tag]` runs one row of `data/tasks.md` headless in a fresh clone of the bench project. Arm A also blocks the Agent tool, so a delegation rule in a global `CLAUDE.md` can't leak subagents into the forced Opus runs; arm D blocks the Skill tool instead, so the installed router skill can't turn a spontaneous run into a skill-routed one. Set `TASKS=data/tasks-v2.md`, `TASKS=data/tasks-v3.md` (with `SRC` pointing at a rich checkout), `TASKS=data/tasks-v4.md` (with `SRC` pointing at a beets checkout) or `TASKS=data/tasks-v5.md` (with `SRC` pointing at a buildbot checkout) for the other task sets. Arm F (the v2 baseline) blocks both tools and adds no prefix.
 
 ## Credits
 

@@ -62,3 +62,12 @@ print(f"turns {d.get('num_turns')}  {d.get('duration_ms', 0) / 1000:.0f}s  "
 for m, u in (d.get("modelUsage") or {}).items():
     print(f"  {m:<20} out {u['outputTokens']:>7,}")
 EOF
+
+# Long answers often land in the child session's scratchpad under /tmp, which a reboot wipes.
+# Keep a copy next to the run JSON.
+scratch="/tmp/claude-$(id -u)/$(echo "$dest" | tr '/' '-')"
+if compgen -G "$scratch/*/scratchpad/*" > /dev/null; then
+  mkdir -p "${out%.json}-scratch"
+  cp -r "$scratch"/*/scratchpad/. "${out%.json}-scratch/"
+  echo "  scratchpad copied to ${out%.json}-scratch/"
+fi
