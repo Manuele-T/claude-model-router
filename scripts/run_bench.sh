@@ -53,6 +53,7 @@ git -C "$dest" remote remove origin
 
 echo "== t${task}-${run}${tag}: $prompt"
 cd "$dest"
+claude --version > "${out%.json}.version"
 claude -p "$prompt" --model opus --effort medium --permission-mode auto --output-format json "${extra[@]}" > "$out"
 python3 - "$out" <<'EOF'
 import json, sys
