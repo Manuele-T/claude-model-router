@@ -409,6 +409,40 @@ What Part 1 shows:
 - **Forced Haiku halved the cost on every task** (-46%, -53%, -53%) and found more real doc errors than Opus alone on both doc checks (per run, 20-23 against 9-17 on 42, and 58-63 against 35-39 on 43). On 42 its Haiku readers plus Opus re-checking beat every other setup; on 43 only B found more.
 - **This reverses beets.** There, forced Opus found the most on the 80-page check (44 of 61 after the re-check, against 35-39). At 100k lines, Opus alone made 80-105 turns and still covered less than 4-7 parallel readers whose findings Opus then re-checked.
 - **The skill still picked Sonnet for everything** ("needs code comprehension") and saved at most 5% against F. It was the most thorough on 43 (70 real errors in one run) and the fastest on 41 and 43.
-- **Opus left alone never delegated** (0 subagents in 7 D runs) and cost about the same as F, so blocking delegation changed nothing measurable here. D found the fewest real errors on 42.
+- **Opus left alone never delegated** (0 subagents in 6 D runs) and cost about the same as F, so blocking delegation changed nothing measurable here. D found the fewest real errors on 42.
 - **The planted errors were too easy.** Every run caught all 30, so the real errors are what separate the setups.
 - **Run-to-run variance is large.** F's three 41 runs cost $2.70-3.61 and backed 88-98% of links; one C run cost 2.8x the other two.
+
+## v2, Part 2: building tasks on the small codebase (tasks 51-52; 2026-11-04)
+
+Task descriptions in `data/tasks-v6.md`: the same private ~10k-line project as sets 1-2 (214 unit tests). These tasks write code instead of reading it. **51:** a well-specified feature, an optional validated field on a config record, touching the model, parsing and saving, the CLI, docs and tests (7-9 files changed). **52:** a bug hunt from a user's symptom: one bug planted in the config writer's string escaping before any run, in a one-commit copy of the project. The existing suite doesn't catch it. Same arms as Part 1 (F baseline, D, B, C), each run twice.
+
+**Scoring.** A hidden test file for each task, written before any run and checked to fail on the unmodified code, was copied into the clone after the run (9 tests for 51; 4 for 52, one of which tries every printable character after a backslash). Then the whole unit suite was run, including the tests the run itself wrote.
+
+| Task | F r1 / r2 $ | D r1 / r2 $ | B r1 / r2 $ | C r1 / r2 $ |
+| --- | --- | --- | --- | --- |
+| 51 Feature | 0.54 / 0.80 | 0.73 / 0.68 | 0.60 / 0.69 | 0.38 / 0.54 |
+| Mean (vs F) | **0.67** | **0.71 (+5%)** | **0.65 (-4%)** | **0.46 (-31%)** |
+| 52 Bug hunt | 0.17 / 0.26 | 0.39 / 0.27 | 0.37 / 0.43 | 0.22 / 0.26 |
+| Mean (vs F) | **0.22** | **0.33 (+53%)** | **0.40 (+86%)** | **0.24 (+12%)** |
+
+| | F | D | B | C |
+| --- | --- | --- | --- | --- |
+| Hidden tests passed | all, all 4 runs | all, all 4 runs | all, all 4 runs | all, all 4 runs |
+| Full suite | pass | pass | pass | pass |
+| Wall time 51, r1 / r2 | 84 / 143 s | 134 / 138 s | 137 / 207 s | 120 / 209 s |
+| Wall time 52, r1 / r2 | 51 / 64 s | 107 / 62 s | 58 / 98 s | 83 / 289 s |
+| Subagents 51, r1 / r2 | 0 | 0 | 1 Sonnet / 1 Haiku + 1 Sonnet | 1 Haiku / 1 Haiku |
+| Subagents 52, r1 / r2 | 0 | 0 | 0 (kept inline) / 1 Sonnet | 1 Haiku / 1 Haiku |
+
+Mismatches 0, fallbacks 0; no `Skill` calls or routing-log lines in the D runs. All 16 runs together cost $7.33.
+
+What Part 2 shows:
+
+- **Quality didn't separate the setups.** All 16 runs passed everything. These tasks were too easy to expose a gap, so this doesn't show that Haiku codes as well as Opus. It shows Haiku can do a small, well-specified job with Opus reviewing, and in C on 51 Opus's review added a small validation fix of its own in one run, so C's quality is partly Opus's.
+- **The feature: forced Haiku was cheapest** (-31%), though slower than Opus alone because of the hand-off. Almost all of a C run's cost is Opus: Haiku's share was 2-3 cents, Opus's 37-51.
+- **The small fix: Opus alone was cheapest and fastest.** On a job this small, delegation overhead outweighs the cheaper tokens. In one run Haiku took 17 requests and nearly 5 minutes for a fix Opus alone made in about a minute, at the same cost.
+- **The skill isn't free.** On 52 r1 it correctly kept the fix inline with no subagent, and still cost about twice F's run, because of loading the skill and logging.
+- **Opus left alone never delegated** (0 subagents in 4 more D runs; 0 in 10 across v2).
+- **Next: harder coding tasks**, such as a vaguely specified feature, a multi-file refactor or a subtler bug, where a quality gap could actually appear.
+- **Variance is large relative to the gaps.** F's own two runs on 51 differ by 48%, and the differences between setups are under $0.30 per run. With 2 runs per setup, only C's feature saving stands out.

@@ -14,7 +14,7 @@ This repo is an experiment to find out. It contains two things:
 3. **Skill-routed:** Opus uses the skill and chooses which model each subagent runs on.
 4. **Forced Haiku:** Opus uses the skill, but every subagent must run on Haiku. Opus still plans, briefs and checks the work.
 
-**Scope:** almost all tasks were about reading and reviewing existing code (searches, inventories, module summaries, checking docs against code), plus a few small edits. Building new code from scratch wasn't tested, so these results don't cover it.
+**Scope:** almost all tasks were about reading and reviewing existing code (searches, inventories, module summaries, checking docs against code), plus a few small edits. Building new code from scratch wasn't tested in v1, so these results don't cover it; v2 below has first results on writing code.
 
 ## At a glance
 
@@ -68,10 +68,27 @@ Each setup ran twice (three times where results were far apart), with the same v
 
 - **Forced Haiku halved the cost on every task and found more than Opus alone on both doc checks.** This reverses beets, where Opus alone was the most thorough on the biggest check. At this size, a single Opus session covers less than several parallel readers whose findings Opus then re-checks.
 - **The skill still sent everything to Sonnet.** It was the most thorough on the 85-page check, but it saved at most 5% and cost 13% more overall.
-- **Left alone, Opus still never delegated** (0 subagents in 7 runs) and cost about the same as blocked Opus.
+- **Left alone, Opus still never delegated** (0 subagents in 6 runs) and cost about the same as blocked Opus.
 - **Every run caught every planted error**, so they were too easy; the real errors are what separate the setups.
 
-Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per setup, and "of 42/92" counts errors found by any run, not true recall. Per-run numbers and the scoring rules are in [`data/results.md`](data/results.md). Still to come: tasks that build new code rather than read it.
+Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per setup, and "of 42/92" counts errors found by any run, not true recall. Per-run numbers and the scoring rules are in [`data/results.md`](data/results.md).
+
+### v2: writing code (first results)
+
+"But I only use Claude for coding." So v2 also tests tasks that write code, on the small codebase: a well-specified feature touching 7-9 files, and a bug hunt from a user's symptom (one bug planted before any run, not caught by the existing tests). Each was scored by a hidden test file written before any run, plus the whole unit suite. Each setup ran twice ([`data/tasks-v6.md`](data/tasks-v6.md)).
+
+| | Opus only, blocked | Opus only, spontaneous | Skill-routed | Forced Haiku |
+| --- | --- | --- | --- | --- |
+| Feature, mean cost | $0.67 | $0.71 (+5%) | $0.65 (-4%) | $0.46 (-31%) |
+| Bug fix, mean cost | $0.22 | $0.33 (+53%) | $0.40 (+86%) | $0.24 (+12%) |
+| Hidden tests and full suite | all passed | all passed | all passed | all passed |
+| Subagents per run | 0 | 0 | 0-2 | 1 Haiku |
+
+- **Every setup wrote correct code, but these tasks were too easy to expose a gap.** This doesn't show that Haiku codes as well as Opus. It shows Haiku can do a small, well-specified job with Opus reviewing.
+- **Forced Haiku was cheapest on the feature; Opus alone was cheapest and fastest on the small fix**, where delegation overhead outweighs the cheaper tokens.
+- **The amounts are small** (under $0.30 per run between setups), and Opus alone varied by 48% between two runs of the same task, so only Haiku's feature saving stands out.
+
+Still to come: harder coding tasks (a vaguely specified feature, a multi-file refactor, a subtler bug), where a quality gap could actually appear.
 
 ## How it works
 
