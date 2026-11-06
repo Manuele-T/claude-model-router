@@ -88,7 +88,29 @@ Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per se
 - **Forced Haiku was cheapest on the feature; Opus alone was cheapest and fastest on the small fix**, where delegation overhead outweighs the cheaper tokens.
 - **The amounts are small** (under $0.30 per run between setups), and Opus alone varied by 48% between two runs of the same task, so only Haiku's feature saving stands out.
 
-Still to come: harder coding tasks (a vaguely specified feature, a multi-file refactor, a subtler bug), where a quality gap could actually appear.
+### v2: harder coding tasks
+
+Those tasks were too easy, so I added three harder ones, on the same small codebase: a real bug whose obvious one-line fix fails, a vaguely worded feature ("rename a profile; whatever worked under the old name must keep working"), and a refactor splitting a ~700-line module with no behaviour change. Tasks, scoring rules and hashes of the private tests were [committed before any run](data/tasks-v7.md). Each setup ran twice.
+
+| Mean cost per run | Opus only, blocked | Opus only, spontaneous | Skill-routed | Forced Haiku |
+| --- | --- | --- | --- | --- |
+| Bug with a trap | $0.63 | $0.69 (+11%) | $0.57 (-8%) | $0.35 (-44%) |
+| Vague feature | $1.01 | $1.04 (+3%) | $1.26 (+25%) | $0.71 (-30%) |
+| Refactor | $0.77 | $0.87 (+13%) | $1.05 (+36%) | $0.74 (-5%) |
+| **All three** | **$2.41** | **$2.61 (+8%)** | **$2.89 (+20%)** | **$1.80 (-25%)** |
+| Share spent on checking, after the first edit | 7-26% | 9-22% | 26-35% | 17-31% |
+| Code lines added, vague feature | 111 | 106 | 88 | 70 |
+
+Hidden tests: every run passed all 9 on the bug and all 22 on the refactor. On the feature, every setup scored 12 and 11 of 12, and that lost point is a flaw in my test (see below).
+
+- **Forced Haiku was cheapest with no sign of lower quality, but these tasks still didn't separate the setups.** No run fell for the trap. Opus reviews and tests in every setup, so a mistake by a helper may get fixed before scoring. What this shows is "Opus plus Haiku" holding up, not Haiku alone.
+- **The saving depends on the task.** Haiku saved 44% on the bug and only 5% on the refactor, where Opus still has to understand the code and check the result. It was also slower than Opus alone on all three tasks.
+- **Delegating moves money into checking.** Checking cost more in both delegating setups than in Opus alone on all three tasks, up to 56% of one skill-routed run.
+- **Cheaper helpers didn't over-engineer.** On the feature, Opus alone wrote the most code and added the most complexity.
+- **Skill routing was the most expensive setup on the feature and the refactor**, with the same scores.
+- **My test had a flaw.** It compared whole records, so runs that added a field to keep a renamed profile linked to the app menu lost a point. I kept the scores as they are, because the rule was no changes after seeing results. I hadn't thought of that requirement myself: 5 of 8 runs handled it, spread across all setups.
+
+With 2 runs per setup and all setups scoring alike, this still can't say how far Haiku can be pushed. The next step is coding tasks on a much bigger codebase, where finding the right code is the hard part.
 
 ## How it works
 

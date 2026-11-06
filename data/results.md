@@ -446,3 +446,75 @@ What Part 2 shows:
 - **Opus left alone never delegated** (0 subagents in 4 more D runs; 0 in 10 across v2).
 - **Next: harder coding tasks**, such as a vaguely specified feature, a multi-file refactor or a subtler bug, where a quality gap could actually appear.
 - **Variance is large relative to the gaps.** F's own two runs on 51 differ by 48%, and the differences between setups are under $0.30 per run. With 2 runs per setup, only C's feature saving stands out.
+
+## v2, Part 3: harder building tasks on the small codebase (tasks 53-55; 2026-11-05 to 2026-11-06)
+
+Task descriptions, scoring definitions and SHA-256 hashes of the private prompts and hidden tests are in `data/tasks-v7.md`, committed before any run (`4ac6b5d`). Same private project (baseline `a3c99c4`, 214 unit tests) and same arms as Part 2, each run twice, interleaved across arms. All 24 runs used Claude Code 2.1.317. **53:** a real bug in the project's start-at-login feature, where the obvious one-line fix fails. **54:** a vaguely worded feature, renaming a profile. **55:** split the ~700-line CLI module, with no behaviour change and no edits to existing tests. For 55, scoring restored the existing tests from the baseline first.
+
+| Task | F r1 / r2 $ | D r1 / r2 $ | B r1 / r2 $ | C r1 / r2 $ |
+| --- | --- | --- | --- | --- |
+| 53 Domain trap | 0.73 / 0.52 | 0.69 / 0.70 | 0.51 / 0.64 | 0.42 / 0.28 |
+| Mean (vs F) | **0.63** | **0.69 (+11%)** | **0.57 (-8%)** | **0.35 (-44%)** |
+| 54 Vague feature | 1.04 / 0.98 | 1.15 / 0.94 | 1.17 / 1.36 | 0.74 / 0.68 |
+| Mean (vs F) | **1.01** | **1.04 (+3%)** | **1.26 (+25%)** | **0.71 (-30%)** |
+| 55 Refactor | 0.78 / 0.77 | 0.88 / 0.86 | 1.10 / 1.01 | 0.77 / 0.70 |
+| Mean (vs F) | **0.77** | **0.87 (+13%)** | **1.05 (+36%)** | **0.74 (-5%)** |
+| All three, mean per run (vs F) | **2.41** | **2.61 (+8%)** | **2.89 (+20%)** | **1.80 (-25%)** |
+
+Hidden tests, passed of total, r1 / r2. The whole suite without the hidden test passed in all 24 runs (see the flake note below):
+
+| Task | F | D | B | C |
+| --- | --- | --- | --- | --- |
+| 53 (of 9) | 9 / 9 | 9 / 9 | 9 / 9 | 9 / 9 |
+| 54 (of 12) | 12 / 11 | 12 / 11 | 12 / 11 | 12 / 11 |
+| 55 (of 22) | 22 / 22 | 22 / 22 | 22 / 22 | 22 / 22 |
+| Subagents per run | 0 | 0 | 53, 55: 1 Sonnet; 54: 1 Haiku + 1 Sonnet | 53, 55: 1 Haiku; 54: 2 Haiku / 1 Haiku |
+
+Mismatches 0, fallbacks 0; no `Skill` calls or routing-log lines in the D runs. All 24 runs together cost $19.41. D has now made no subagent call in 16 v2 runs.
+
+Means per run, from `scripts/run_metrics.py`. Code lines exclude tests and docs. "Check" is the post-edit check cost as defined in `data/tasks-v7.md`. Edit counts include shell commands that write files, detected by a heuristic.
+
+| Task, arm | Code +/- | Test lines + | Complexity added | Opus $ | Subagents $ | Check $ (share) | Suite runs | Edits | Rework | Wall min |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 53 F | 3.5 / 1 | 46.5 | 0 | 0.63 | 0 | 0.04 (7%) | 4.5 | 5 | 3 | 1.9 |
+| 53 D | 4 / 1 | 34.5 | 0 | 0.69 | 0 | 0.15 (22%) | 4.5 | 4.5 | 0.5 | 3.7 |
+| 53 B | 4 / 1 | 13 | 0 | 0.32 | 0.25 | 0.15 (26%) | 2 | 2 | 0 | 2.0 |
+| 53 C | 2.5 / 1 | 33 | 0 | 0.32 | 0.03 | 0.10 (28%) | 7 | 7 | 5 | 2.9 |
+| 54 F | 111 / 7.5 | 167 | 32 | 1.01 | 0 | 0.10 (10%) | 3.5 | 8 | 3.5 | 4.3 |
+| 54 D | 106 / 10 | 164 | 33 | 1.04 | 0 | 0.10 (9%) | 4.5 | 3.5 | 2.5 | 4.2 |
+| 54 B | 88 / 5 | 174.5 | 28 | 0.87 | 0.40 | 0.45 (35%) | 4.5 | 4 | 2.5 | 6.0 |
+| 54 C | 70 / 5 | 138 | 21 | 0.61 | 0.10 | 0.12 (17%) | 6 | 16.5 | 1.5 | 7.1 |
+| 55 F | 842 / 649 | 48 | 4 | 0.77 | 0 | 0.20 (26%) | 2.5 | 1 | 0 | 3.3 |
+| 55 D | 714.5 / 567 | 45.5 | 4 | 0.87 | 0 | 0.12 (14%) | 3.5 | 2 | 1 | 3.8 |
+| 55 B | 815 / 606 | 48.5 | 4.5 | 0.77 | 0.28 | 0.33 (31%) | 7 | 5.5 | 3.5 | 4.9 |
+| 55 C | 690 / 565.5 | 0 | 2.5 | 0.71 | 0.02 | 0.22 (31%) | 3.5 | 3.5 | 0 | 4.4 |
+
+The same measures on Part 2:
+
+| Task, arm | Code +/- | Check $ | Suite runs | Rework |
+| --- | --- | --- | --- | --- |
+| 51 F | 43.5 / 5 | 0.08 | 2 | 0.5 |
+| 51 D | 45 / 5 | 0.07 | 2 | 0 |
+| 51 B | 35.5 / 5 | 0.17 | 2.5 | 1 |
+| 51 C | 37.5 / 5 | 0.15 | 5.5 | 3.5 |
+| 52 F | 3 / 4 | 0.03 | 2.5 | 1 |
+| 52 D | 2.5 / 4 | 0.04 | 4 | 1.5 |
+| 52 B | 2 / 4 | 0.07 | 3.5 | 1.5 |
+| 52 C | 6 / 7 | 0.08 | 4 | 1 |
+
+What Part 3 shows:
+
+- **Quality still didn't separate the setups.** No run fell for the trap on 53, Haiku included. Opus reviews and tests in every setup, so a helper's mistake may be fixed before scoring; the cost of that shows up as checking and rework instead of a lower score. These results support "Opus plus Haiku holds up", not "Haiku alone is as good as Opus".
+- **Forced Haiku was cheapest on all three, by very different margins:** -44%, -30% and -5%. On the refactor the writing is mechanical, and Opus's own reading and checking dominate. Almost all of a C run's cost is Opus.
+- **It was also slower** than F on all three tasks, by the wall-time means above.
+- **Delegating moves cost into checking.** B and C spent 17-35% on checking against 7-26% for F. The largest single case is 54 B r2, at 56%.
+- **No over-engineering from cheaper helpers.** On 54, F and D wrote the most code and added the most complexity.
+- **The skill was the most expensive setup on 54 and 55**, with no better scores.
+
+**A flaw in my hidden test for 54.** `test_keeps_other_fields_and_order` compares whole records, so a run that adds an optional field to the record fails it, even with every original field kept. Runs F r2, D r2, B r2 and C r2 lost their point this way. D r1 added a similar field but left it empty in this test's case, so it passed. The test wasn't changed after seeing results, so the scores stand as above. Each of those fields is there to keep a renamed profile linked to its entry in the GUI's app menu, a requirement I hadn't thought of when designing the task. 5 of 8 runs handled it: F 1, D 2, B 1, C 1. That count comes from reading the diffs, wasn't defined before the runs, and those links weren't tested separately.
+
+**A flaky existing test.** An IPC test in the project, `test_errors_are_replies_not_crashes`, fails rarely. The combined suite showed one failure once each on 55 B r1 and 55 B r2 during scoring, with hidden tests at 22 of 22 and the suite passing without the hidden test. Repeat runs of B r1 caught this test failing in 1 of 14, and B r2 passed all 9 repeats. D r2 on 53 also reported an intermittent error in the same test, in 1 of 96 parallel runs. The named failure was only captured in the B r1 repeat, so the two scoring failures are attributed to it, not confirmed. Both B runs are counted as passes.
+
+**Limits.** Two runs per setup. The tasks were designed after seeing that Haiku did well on 51-52, which could bias them, and committing them before any run reduces that risk without removing it. The task designer knew the project's code, and a task the designer can solve in a reference fix may be easier than real work.
+
+**Next:** coding tasks on a much bigger codebase, a bug the existing tests can't reveal, and a bug whose symptom appears far from its cause, as new task numbers.
