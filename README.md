@@ -188,6 +188,22 @@ On those coding tasks Haiku alone matched every other setup's hidden-test scores
 
 **What I'd do today:** on small, testable coding tasks, try Haiku alone and review the result yourself. Want more care, or doing a big review? Use Opus delegating to Haiku. This is 2 runs per setup, on tasks every setup could do. Haiku alone hasn't yet met a coding task it fails, so this doesn't show where its limit is.
 
+### v2: cost per error, and errors missed twice
+
+Two questions from a reader. **What does each real error cost?** And **does a setup keep missing the same errors?** If it does, whatever's on the list could decide the verdict.
+
+| Doc checks | Opus only | Opus, spontaneous | Skill-routed | Forced Haiku | Haiku alone |
+| --- | --- | --- | --- | --- | --- |
+| Cost per real error, 2-page check | $0.12 | $0.14 | $0.11 | **$0.04** | not run |
+| Cost per real error, 85-page check | $0.11 | $0.11 | $0.06 | **$0.03** | $0.05 |
+| Cost per real error, beets 80-page check | $0.25 | $0.19 | $0.14 | **$0.05** | not run |
+| Errors both runs missed, 85-page check (of 92) | 43 | 49 | 15 | 20 | 38 |
+| Errors both runs missed, beets check (of 61) | 17 | 25 | 26 | 22 | not run |
+
+- **Forced Haiku was the cheapest per error on every check**, even on beets, where forced Opus found the most. So the better choice depends on what a missed error costs you.
+- **Repeat misses aren't specific to Haiku.** Which setup misses the most changes with the codebase: Opus alone missed the most on buildbot and the fewest on beets.
+- **The list matters.** Only 12 of 92 and 13 of 61 errors were found by every run, while 14 and 8 were found by just one. Each list is built from what the runs themselves found, so it can't contain what they all missed.
+
 ## How it works
 
 - **Three tiers.** `skills/model-router/SKILL.md` tells the orchestrator to default to Haiku for finding, listing and formatting, to use Sonnet for anything that reads code and makes a judgement, and to keep hard design or security reasoning on Opus itself. Tiny tasks stay inline. A failed Haiku result is retried once on Sonnet.

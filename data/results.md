@@ -646,3 +646,39 @@ Almost all of H's cost was Haiku's 5x rate on prompts over 100K tokens ($1.74 of
 **Limits.** This is a floor, not a full false-positive rate. Lines closely matching a verified row weren't re-read, and a run could state a listed error wrongly. Not settled: three B r2 claims (Git's minimum version, shallow with an unknown revision, the p4 client prefix), one C r1 "probable code bug", and a disagreement on 42: B r2 says the "not yet ported to data API" notes still look true, while D r2, B r1 and C r1 say at least part of them is stale. Two claims with arguable wording were counted as true. The extended counts are not a fair ranking on their own, since I checked claims outside the list closely only for these runs, and a separate list wasn't rebuilt from all 10.
 
 **What it shows.** Doc-check runs rarely state outright falsehoods, in any setup, so the extra findings from delegating don't appear to come at the price of invented errors. H's weakness here is wrong locations rather than wrong claims.
+
+## Cost per issue and repeat misses (added 2026-11-06, no new runs)
+
+A reader asked how the issue lists were built, whether Haiku keeps missing the same issues (in which case the list could decide the verdict), and whether cost per issue would be reported.
+
+**How the lists were built.** Each is the union of the runs' own findings, checked against the code by Claude Opus. On rich, 12 problems came from the runs' findings. On beets, the first list of 51 left about 24 claims unverified, and re-checking gave 61. On buildbot, the lists of 42 and 92 are real errors reported separately from the 30 planted ones. So a list can't contain an error no run found, and "of N" is not true recall. Every run found every planted error, so the planted errors don't separate the setups or measure recall on subtle errors. The 92 was built before Haiku alone ran, and the 61 from all 8 beets runs.
+
+**Cost per real error found:** mean cost per run divided by mean real errors per run, on the fixed lists. Every error counts the same, however trivial. The cost is the API-price proxy for the whole task.
+
+| Task | F (A on beets) | D | B | C | H |
+| --- | --- | --- | --- | --- | --- |
+| 42 Doc check, 2 pages (of 42) | $0.12 | $0.14 | $0.11 | **$0.04** | not run |
+| 43 Doc check, 85 pages (of 92) | $0.11 | $0.11 | $0.06 | **$0.03** | $0.05 |
+| 33 Beets, 80 pages (of 61) | $0.25 | $0.19 | $0.14 | **$0.05** | not run |
+
+**Repeat misses:** from the "Runs" column of the verified lists and, for H, the Claude Opus scoring in Part 5. Overlap is issues found by both runs divided by issues found by either. Task 42's list records only which run found an issue first, so it can't be used here.
+
+| Task 43 (of 92) | F | D | B | C | H |
+| --- | --- | --- | --- | --- | --- |
+| Found by both runs | 25 | 31 | 48 | 49 | 29 |
+| Found by either | 49 | 43 | 77 | 72 | 54 |
+| Missed by both | 43 | 49 | 15 | 20 | 38 |
+| Overlap | 0.51 | 0.72 | 0.62 | 0.68 | 0.54 |
+
+| Task 33 (of 61) | A | D | B | C |
+| --- | --- | --- | --- | --- |
+| Found by both runs | 30 | 26 | 23 | 21 |
+| Found by either | 44 | 36 | 35 | 39 |
+| Missed by both | 17 | 25 | 26 | 22 |
+| Overlap | 0.68 | 0.72 | 0.66 | 0.54 |
+
+- **On 43,** H missed 38 twice, of which C found 28. C missed 20 twice, of which B found 17 and F or D found 8. 10 were missed twice by both C and H. 12 of 92 were found by all 10 runs, and 14 by one run only.
+- **On 33,** C missed 22 twice, of which A found 17. A missed 17 twice, of which C found 12. 13 of 61 were found by all 8 runs, and 8 by one run only.
+- **Repeat misses aren't specific to Haiku.** Opus alone had more than Haiku alone on 43, and forced Opus had the fewest on 33. The setups miss different things, which supports the reader's concern that the list shapes the verdict.
+
+**Limits.** Two runs per setup is the minimum for calling anything a repeat, and two runs agreeing could be chance. Cost per error rewards finding cheap errors and hides total coverage: on 33, forced Opus cost five times as much per error as forced Haiku, but found the most. Grouping claims into issues is a judgement call by Claude Opus. Independent answer keys, such as real doc fixes from a project's history, would test this better.
