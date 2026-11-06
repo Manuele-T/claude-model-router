@@ -622,6 +622,27 @@ Almost all of H's cost was Haiku's 5x rate on prompts over 100K tokens ($1.74 of
 - **H still found slightly more per run than F or D**, at under half the price.
 - **Its reports are harder to use.** The line-based scorer showed only 17 and 14 of 20 planted errors, because some cited lines don't exist (line 48 of a 32-line page), and r2 gave some wrong file paths. By content, both runs found all 20.
 
-**How the real errors were scored.** Claude Opus read both H reports against the verified list of 92, built earlier from the other 8 runs. Matches are in `data/ground-truth/t43-H-scored.md` (gitignored). This judgement wasn't made blind, because I knew the setup. Claims outside the list (about 75 rows in H r1's report and 68 items in r2's, of which 42 and 41 matched) weren't verified, so H may have found real errors that aren't counted, and some of its claims may be wrong. False positives haven't been counted for any setup yet. The past-end-of-file figure only catches citations that can't exist, not ones that point to the wrong line.
+**How the real errors were scored.** Claude Opus read both H reports against the verified list of 92, built earlier from the other 8 runs. Matches are in `data/ground-truth/t43-H-scored.md` (gitignored). This judgement wasn't made blind, because I knew the setup. Claims outside the list (about 75 rows in H r1's report and 68 items in r2's, of which 42 and 41 matched) weren't verified, so H may have found real errors that aren't counted, and some of its claims may be wrong; the next section checks those. The past-end-of-file figure only catches citations that can't exist, not ones that point to the wrong line.
 
 **What Part 5 shows, across all parts.** On small, testable coding tasks, Haiku alone got the same hidden-test results as anything with Opus, at 1-12% of the cost of Opus alone, and faster. On the largest review task, Opus plus Haiku found clearly more for the same money. The care Opus adds (indexes, flagging what it couldn't reproduce, accurate citations) doesn't show in my hidden tests but does show in the work. Results are 2 runs per setup, and no coding task here made Haiku alone fail, so where its limit lies is still unknown.
+
+### False positives on the doc checks (tasks 42 and 43, 18 runs)
+
+**Method.** No record of rejected claims survived from the earlier verification, so this is a new check by Claude Opus, not blind to setup. A script compared each report line naming a page with the verified lists, and I read every line sharing fewer than 4 distinctive words with a listed row: 163 of 284 lines on 42 and 358 of 753 on 43, including some headings. Doubtful claims were checked against unmodified buildbot code, and where needed by running it.
+
+**Result.** One claim was confirmed false: 43 H r2 says incremental plus `shallow` raises a config error, but `Git(mode='incremental', shallow=True)` is accepted. H r1 described this correctly.
+
+| | F | D | B | C | H |
+| --- | --- | --- | --- | --- | --- |
+| Confirmed false, task 43 (r1, r2) | 0, 0 | 0, 0 | 0, 0 | 0, 0 | 0, 1 |
+| Confirmed false, task 42 (r1, r2) | 0, 0 | 0, 0 | 0, 0 | 0, 0 | not run |
+| True claims outside the list of 92, task 43 | 0, 0 | 0, 0 | 1, 1 | 4, 3 | 10, 4 |
+| Real errors including those, task 43 | 36, 38 | 39, 35 | 56, 71 | 62, 66 | 52, 45 |
+
+- **Claims I'd set aside that turned out true:** B: forced `want_steps` and `want_logs`, and `interruptSignal`'s version gate. C: the `»` separator (my earlier note that it wasn't in the code was wrong: it's written as `»`), Telegram `/status` and `/last` covering only online builders, the combined generator's empty blamelist, `interruptSignal`, `projectfile` not being enforced, and the undocumented `warnings` event.
+- **True claims only H made:** the `RemovePYCs` command can't match anything, because of literal quotes in its argument list (H r2 tested this; a code bug, not only a doc error), undocumented `specdir`, `Test`'s `warnOnFailure` having no effect by default, `git describe` adding `HEAD`, a missing comma in a `set_properties` example, a broken interpolation in the robocopy example, an undefined `ss` in the Bitbucket example, `source_common`'s mode default, `Trial` requiring `tests` or `testChanges`, VC6 using `msdev`, and `FileExists` failing for a directory.
+- **Correction:** I earlier said C found about 40-50% more real errors per run than H, based on the fixed list. That list was built before H ran, so it favoured the earlier arms. With these added, C found 64 per run on average and H 48.5, about 30% more. C r1's lead over H r1 is 62 to 52, and C r2's over H r2 is 66 to 45.
+
+**Limits.** This is a floor, not a full false-positive rate. Lines closely matching a verified row weren't re-read, and a run could state a listed error wrongly. Not settled: three B r2 claims (Git's minimum version, shallow with an unknown revision, the p4 client prefix), one C r1 "probable code bug", and a disagreement on 42: B r2 says the "not yet ported to data API" notes still look true, while D r2, B r1 and C r1 say at least part of them is stale. Two claims with arguable wording were counted as true. The extended counts are not a fair ranking on their own, since I checked claims outside the list closely only for these runs, and a separate list wasn't rebuilt from all 10.
+
+**What it shows.** Doc-check runs rarely state outright falsehoods, in any setup, so the extra findings from delegating don't appear to come at the price of invented errors. H's weakness here is wrong locations rather than wrong claims.

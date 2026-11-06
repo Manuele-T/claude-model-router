@@ -151,11 +151,14 @@ On those coding tasks Haiku alone matched every other setup's hidden-test scores
 | Mean cost per run | $4.11 | $4.02 | $3.88 | $1.93 | **$1.93** |
 | Real errors found, of 92 (two runs) | 36, 38 | 39, 35 | 55, 70 | 58, 63 | **42, 41** |
 | Both runs combined | 49 | 43 | 77 | 72 | **54** |
+| Adding true claims checked later, outside that list | 36, 38 | 39, 35 | 56, 71 | 62, 66 | **52, 45** |
+| Claims confirmed false | 0, 0 | 0, 0 | 0, 0 | 0, 0 | **0, 1** |
 | Planted errors found, of 20 | 20, 20 | 20, 20 | 20, 20 | 20, 20 | 20, 20 |
 | Citations past the end of the file | 0%, 0% | 0%, 0% | 0%, 10% | 0%, 0% | **9%, 20%** |
 
 - **For coding tasks like these, the Opus part was most of the bill.** Haiku alone cost 1-12% of Opus alone, which beats Opus plus Haiku by far, and my tests saw no difference in correctness.
-- **On a big review job, Opus plus Haiku was clearly better:** the same cost as Haiku alone, with about 40-50% more real errors per run. Haiku's cost advantage also disappears, because its long prompts hit the 5x rate.
+- **On a big review job, Opus plus Haiku was clearly better:** the same cost as Haiku alone, with about 30% more real errors per run once later-checked claims are included (the list of 92 was built before Haiku alone ran, which favoured the others). Haiku's cost advantage also disappears, because its long prompts hit the 5x rate.
+- **Runs rarely make things up on doc checks.** Of roughly 1,000 claims across 18 runs, I confirmed one false claim, from Haiku alone. Limits are in [`data/results.md`](data/results.md).
 - **Haiku alone still found a bit more than Opus alone on that docs check**, at under half the price.
 - **What my tests don't score may matter most.** On the endpoint, all 8 runs with Opus added a database index for speed, and neither Haiku-alone run did. On the bug, all 8 runs with Opus said they couldn't reproduce part of the report, and neither Haiku-alone run said so. On the docs check, up to a fifth of Haiku's line citations don't exist. So it got the work right on these tasks but took less care, and its reports were less reliable.
 
