@@ -34,6 +34,13 @@ Known weaknesses: there are only two tasks, chosen and written by Claude Opus af
 
 The first script for task 57's source, `make_t57_source.sh`, lost 17 of buildbot's 1,912 files, because `git archive` honours export-ignore and `git add -A` honours global ignore rules. A check of the staged files caught this before any run. `make_t57_source_v2.sh` replaces it, with the same single planted line. No task, prompt or hidden test changed, and the original hashes below still match their files. In a simulated build without the commit, the full unit suite still passed with the plant in place, and the hidden test scored 1 of 8. The commit in that copy skips the local secret-scanning hook, because it flags fixtures in buildbot's public test files, unchanged from upstream.
 
+## Added after the runs started
+
+Two problems with this design surfaced during the runs. Results are in `data/results.md`.
+
+- **Task 56's hidden test data was flawed.** It marks builds as finished with `results` but no `complete_at`, which real finished builds don't look like. The official test wasn't changed, and its score stands. A corrected copy, `test_hidden_t56b.py`, was written after run `t56-Fr1` and scored as a labelled second score on all 8 runs (SHA-256 `77add85d565cea263c202c46f5bad9834d65991e227161de3f851ed8008526f0`). Its only change is setting `complete_at` on finished builds.
+- **Task 57's prompt appears to describe a symptom the planted bug doesn't cause:** committers missing from the blamelist. The prompt wasn't changed.
+
 ## Private file hashes (SHA-256)
 
 ```

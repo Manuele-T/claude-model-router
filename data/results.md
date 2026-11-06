@@ -518,3 +518,59 @@ What Part 3 shows:
 **Limits.** Two runs per setup. The tasks were designed after seeing that Haiku did well on 51-52, which could bias them, and committing them before any run reduces that risk without removing it. The task designer knew the project's code, and a task the designer can solve in a reference fix may be easier than real work.
 
 **Next:** coding tasks on a much bigger codebase, a bug the existing tests can't reveal, and a bug whose symptom appears far from its cause, as new task numbers.
+
+## v2, Part 4: coding tasks on buildbot (tasks 56-57; 2026-11-06)
+
+Design, scoring rules and hashes of the private files are in `data/tasks-v8.md`, committed before any run (`c6b8cd7`, amended before any run in `9847b2d`). Project: buildbot at `c5cdcf3`, with its pinned test requirements in a venv; the unit suite ran 6,448 tests on this setup, all passing or skipped. Same arms as Parts 2-3, each run twice, interleaved across arms. All 16 runs used Claude Code 2.1.317.
+
+**56:** add `/api/v2/builders/{builderid_or_buildername}/result_counts`, returning the number of finished builds per result. It must follow the API's conventions, including its specification, and stay fast on a builder with millions of builds. **57:** a blamelist bug report. One line was removed from `getParentChangeIds` in `master/buildbot/db/changes.py` (its branch filter), so a change's parent can be on another branch. The symptom shows in the build's changes and in notifications. The whole unit suite still passes with the plant in place.
+
+| Task | F r1 / r2 $ | D r1 / r2 $ | B r1 / r2 $ | C r1 / r2 $ |
+| --- | --- | --- | --- | --- |
+| 56 Endpoint | 1.07 / 1.26 | 1.09 / 1.04 | 1.20 / 1.13 | 0.85 / 1.01 |
+| Mean (vs F) | **1.16** | **1.07 (-8%)** | **1.17 (0%)** | **0.93 (-20%)** |
+| 57 Far-off bug | 0.67 / 0.90 | 0.82 / 0.80 | 0.80 / 0.51 | 0.30 / 0.55 |
+| Mean (vs F) | **0.79** | **0.81 (+3%)** | **0.65 (-17%)** | **0.43 (-46%)** |
+| Both, mean per run (vs F) | **1.95** | **1.88 (-4%)** | **1.82 (-7%)** | **1.36 (-30%)** |
+
+Hidden tests, passed of total, r1 / r2. The whole unit suite without the hidden test passed in all 16 runs:
+
+| Task | F | D | B | C |
+| --- | --- | --- | --- | --- |
+| 56, official (of 13) | 9 / 9 | 9 / 9 | 9 / 13 | 13 / 9 |
+| 56, corrected test data (of 13) | 13 / 13 | 13 / 13 | 13 / 13 | 13 / 13 |
+| 57 (of 8) | 8 / 8 | 8 / 8 | 8 / 8 | 8 / 8 |
+| Subagents, 56 | 0 | 0 | 1 Haiku + 1 Sonnet each | 2 Haiku each |
+| Subagents, 57 | 0 | 0 | 1 Haiku + 1 Sonnet / 1 Haiku | 1 Haiku / 2 Haiku |
+
+Mismatches 0, fallbacks 0; no `Skill` calls or routing-log lines in the D runs. All 16 runs together cost $14.02. D has now made no subagent call in 20 v2 runs. The usage limit wasn't hit.
+
+Means per run, defined as in Part 3:
+
+| Task, arm | Code +/- | Test lines + | Complexity added | Opus $ | Subagents $ | Check $ (share) | Suite runs | Edits | Rework | Wall min |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 56 F | 112 / 0 | 259 | 9 | 1.16 | 0 | 0.18 (16%) | 7.5 | 9 | 5 | 6.3 |
+| 56 D | 102.5 / 0 | 197.5 | 8 | 1.07 | 0 | 0.20 (19%) | 5 | 5 | 3.5 | 5.4 |
+| 56 B | 111 / 0 | 262.5 | 10 | 0.74 | 0.43 | 0.52 (44%) | 9 | 6.5 | 3 | 7.3 |
+| 56 C | 109.5 / 0 | 267 | 9 | 0.88 | 0.05 | 0.31 (33%) | 8.5 | 13.5 | 8 | 7.3 |
+| 57 F | 1 / 0 | 105.5 | 0 | 0.79 | 0 | 0.14 (18%) | 7 | 3.5 | 2.5 | 4.9 |
+| 57 D | 1 / 0 | 100.5 | 0 | 0.81 | 0 | 0.13 (16%) | 6 | 5 | 2.5 | 4.6 |
+| 57 B | 1 / 0 | 63.5 | 0 | 0.56 | 0.10 | 0.28 (43%) | 4.5 | 5 | 2.5 | 4.2 |
+| 57 C | 1 / 0 | 81.5 | 0 | 0.39 | 0.04 | 0.16 (37%) | 8 | 6.5 | 3 | 5.2 |
+
+What Part 4 shows:
+
+- **Quality still didn't separate the setups, on a codebase about 10 times bigger.** All 8 bug runs added back the one missing line, rather than patching the symptom. All 8 endpoint runs added a database index with a migration and a spec entry. That index wasn't required by a hidden test and wasn't in the reference solution.
+- **Forced Haiku was cheapest on both**, by 20% and 46%, with C r1 on 57 at $0.30 against $0.67-0.90 for Opus alone.
+- **Skill routing was cheaper than F on 57**, unlike on 54 and 55. On 57 r2 it used only a Haiku subagent, and its Opus cost was the largest part.
+- **Delegating costs checking.** B and C spent 33-44% on post-edit checking, against 16-19% for F and D. The largest single case is 56 B r2, at 57%.
+- **Opus is doing real work.** In 56 C r2, by its own report, Opus's review fixed `row.count` in Haiku's code, which clashed with a tuple method and failed type checking, plus a repeated sentence in the docs. I didn't check whether it also failed at runtime. So part of C's result is Opus's. These results describe Opus plus Haiku, not Haiku alone.
+- **Forced Haiku was not faster than Opus alone** by wall time on either task.
+
+**A flaw in my hidden test for 56.** The test data sets `results` on finished builds but leaves `complete_at` empty, unlike real finished builds. 6 of 8 runs lost the same 4 tests because they count a build only when both are set. I read the code of F r1 and confirmed this there. The other 5 failed the same 4 tests and passed the corrected test, which is consistent with the same cause, but I didn't read each one. The official scores stand. The corrected test is a second score, written after seeing the first failure, so it isn't pre-registered. Its only change is setting `complete_at`. My reference solution had the same blind spot, which is why validating against it didn't catch this. The official numbers shouldn't be read as a quality difference.
+
+**A flaw in my prompt for 57.** It says some `release` committers are missing from the blamelist. From reading the code, the planted bug adds wrong names but doesn't appear to lose any, though I haven't proven that. All 8 runs said they couldn't reproduce that part, and none claimed it was fixed. It may have cost them some extra investigation, equally across setups as far as I can tell.
+
+**Limits.** Two runs per setup and two tasks. The bug is planted rather than found in the wild, and its fix is a single line next to an unused `branch` argument, a strong hint once a run gets there. These tasks were written by Claude Opus after seeing that Haiku did well, and two hidden tests in this batch and the last had flaws that only runs exposed.
+
+**Next:** every setup so far has Opus reviewing and testing. The open question is Haiku with no Opus behind it, as a new setup on the same tasks.

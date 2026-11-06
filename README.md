@@ -110,7 +110,27 @@ Hidden tests: every run passed all 9 on the bug and all 22 on the refactor. On t
 - **Skill routing was the most expensive setup on the feature and the refactor**, with the same scores.
 - **My test had a flaw.** It compared whole records, so runs that added a field to keep a renamed profile linked to the app menu lost a point. I kept the scores as they are, because the rule was no changes after seeing results. I hadn't thought of that requirement myself: 5 of 8 runs handled it, spread across all setups.
 
-With 2 runs per setup and all setups scoring alike, this still can't say how far Haiku can be pushed. The next step is coding tasks on a much bigger codebase, where finding the right code is the hard part.
+### v2: coding on a ~100k-line codebase
+
+Maybe those tasks were still too easy because the project is small. So I ran two more on buildbot, where finding the right code is the hard part: a REST endpoint that has to follow the project's conventions and stay fast on millions of builds, and a blamelist bug whose symptom shows in notifications but whose cause is in how the database links commits (one line removed by me, not caught by the project's 6,400+ unit tests). The [design was committed before any run](data/tasks-v8.md).
+
+| Mean cost per run | Opus only, blocked | Opus only, spontaneous | Skill-routed | Forced Haiku |
+| --- | --- | --- | --- | --- |
+| REST endpoint | $1.16 | $1.07 (-8%) | $1.17 (0%) | $0.93 (-20%) |
+| Far-off bug | $0.79 | $0.81 (+3%) | $0.65 (-17%) | $0.43 (-46%) |
+| **Both** | **$1.95** | **$1.88 (-4%)** | **$1.82 (-7%)** | **$1.36 (-30%)** |
+| Share spent on checking, after the first edit | 16-18% | 16-19% | 43-44% | 33-37% |
+| Hidden tests, endpoint, official (of 13) | 9, 9 | 9, 9 | 9, 13 | 13, 9 |
+| Hidden tests, endpoint, corrected test data (of 13) | 13, 13 | 13, 13 | 13, 13 | 13, 13 |
+| Hidden tests, bug (of 8) | 8, 8 | 8, 8 | 8, 8 | 8, 8 |
+
+- **A bigger codebase didn't separate the setups either.** All 16 runs ended with working code. All 8 bug runs made the same one-line fix at the real cause, and all 8 endpoint runs added a database index with a migration, which my own reference solution didn't do.
+- **The official endpoint scores don't reflect the code.** My test data marked builds as finished without a completion time, so runs that sensibly checked for one counted zero. I kept those scores, and added a corrected test as a separate score, written after seeing the first failure.
+- **Opus is doing real work in these results.** In one forced Haiku run, Opus's review fixed a problem in Haiku's code that failed type checking. Delegating setups spent over twice the share on checking.
+- **It cost far less than I guessed**, about $1 per run, because runs read only what they needed. My guess was $2-5.
+- **My bug report was partly wrong.** It described names missing from the blamelist, which the planted bug doesn't seem to cause. All 8 runs said they couldn't reproduce that part rather than claim it was fixed.
+
+So across five harder coding tasks, Opus plus Haiku was the cheapest setup, with no sign of worse code. That's not "Haiku is as good as Opus": every setup here has Opus reviewing and testing. The open question is how Haiku does with no Opus behind it.
 
 ## How it works
 
