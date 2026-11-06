@@ -95,9 +95,17 @@ Each setup ran twice (three times where results were far apart), with the same v
 - **Left alone, Opus still never delegated** (0 subagents in 6 runs) and cost about the same as blocked Opus.
 - **Every run caught every planted error**, so they were too easy; the real errors are what separate the setups.
 
+<p align="center">
+  <img src="charts/v2-reading.png" alt="Reading buildbot: all three tasks cost $8.98 for Opus alone, $8.26 spontaneous Opus, $10.19 skill-routed and $4.44 forced Haiku; on the 85-page docs check Opus alone found 36 and 38 of 92 real errors for $4.11, spontaneous Opus 39 and 35 for $4.02, skill-routed 55 and 70 for $3.88, forced Haiku 58 and 63 for $1.93, and Haiku alone 42 and 41 for $1.93" width="800">
+</p>
+
 Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per setup, and "of 42/92" counts errors found by any run, not true recall. Per-run numbers and the scoring rules are in [`data/results.md`](data/results.md).
 
 ### v2: writing code
+
+<p align="center">
+  <img src="charts/v2-coding.png" alt="Writing code: on 2 simple tasks, costs were $0.89 for Opus alone, $1.04 spontaneous Opus, $1.05 skill-routed and $0.70 forced Haiku; on 3 harder tasks $2.41, $2.61, $2.89, $1.80 and $0.11 for Haiku alone; on 2 harder tasks on about 100k lines $1.95, $1.88, $1.82, $1.36 and $0.15 for Haiku alone. Every setup produced working code; hidden-test points lost came from flaws in the tests" width="800">
+</p>
 
 "But I only use Claude for coding." So v2 also tests tasks that write code, on the small codebase: a well-specified feature touching 7-9 files, and a bug hunt from a user's symptom (one bug planted before any run, not caught by the existing tests). Each was scored by a hidden test file written before any run, plus the whole unit suite. Each setup ran twice ([`data/tasks-v6.md`](data/tasks-v6.md)).
 

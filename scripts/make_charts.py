@@ -220,6 +220,87 @@ CHARTS = {
          "Adding true claims checked later: forced Haiku 62 and 66, Haiku alone 52 and 45. <b>Combined</b> = distinct issues found by the two runs together."],
         [],
         "Two runs per setup · Haiku alone ran later, on the same Claude Code version · API list prices as a proxy for subscription usage"), 4000),
+    "v2-reading": (page(
+        "Delegating to cheaper models: reading a ~100k-line codebase",
+        "buildbot (open source), 408 modules · estimated API cost",
+        [section("All three tasks", "module summaries + 2 docs checks, mean per run", [
+            {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 8.98,
+             "quality": ["Summaries: all 400 modules", "2-page check: 10 and 17 of 42 (22 combined)"]},
+            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "small": "could delegate, never did",
+             "kind": "natural", "cost": 8.26, "delta": "−8%",
+             "quality": ["Summaries: all 400 modules", "2-page check: 9 and 9 of 42 (12 combined)"]},
+            {"name": "Skill-routed", "models": "Opus + Sonnet", "small": "4-10 subagents per task", "kind": "routed",
+             "cost": 10.19, "delta": "+13%",
+             "quality": ["Summaries: all 400 modules", "2-page check: 17 and 21 of 42 (26 combined)"]},
+            {"name": "Forced Haiku", "models": "Opus + Haiku", "small": "4-12 subagents per task", "kind": "haiku",
+             "cost": 4.44, "delta": "−51%",
+             "quality": ["Summaries: all 400 modules", "2-page check: 20 and 23 of 42 (28 combined)"]},
+         ], base="Opus alone"),
+         section("Biggest job: docs check", "85 doc pages, mean of 2 runs", [
+            {"name": "Opus only, blocked", "models": "Opus, no subagents", "small": "~7 min per run", "kind": "opus",
+             "cost": 4.11, "quality": ["36 and 38 of 92 (49 combined)"]},
+            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "small": "~9 min per run", "kind": "natural",
+             "cost": 4.02, "delta": "−2%", "quality": ["39 and 35 of 92 (43 combined)"]},
+            {"name": "Skill-routed", "models": "Opus + Sonnet", "small": "~4.5 min per run", "kind": "routed",
+             "cost": 3.88, "delta": "−5%", "quality": ["55 and 70 of 92 (77 combined)"]},
+            {"name": "Forced Haiku", "models": "Opus + Haiku", "small": "~6.5 min per run", "kind": "haiku",
+             "cost": 1.93, "delta": "−53%", "quality": ["58 and 63 of 92 (72 combined)"]},
+            {"name": "Haiku alone", "models": "Haiku, no Opus", "small": "~12 min per run", "kind": "solo",
+             "cost": 1.93, "delta": "−53%", "quality": ["42 and 41 of 92 (54 combined)"]},
+         ], base="Opus alone")],
+        ["<b>Summaries:</b> one paragraph per module, saying what it does and what it works with. Scored on coverage. "
+         "83-98% of named links were backed by a real import, with no clear gap between setups.",
+         "<b>Docs checks:</b> find where the docs disagree with the code. 30 errors were planted first, and every run found them all. "
+         "The scores are real errors on lists verified against the code by Claude Opus, built from the runs' own findings, so \"of 92\" isn't true recall. "
+         "<b>Combined</b> = distinct issues found by the two runs together."],
+        [("Skill-routed", "32-39%", "5% cheaper to 32% more expensive"),
+         ("Forced Haiku", "82-88%", "actually 46-53% cheaper")],
+        "Mean of 2-3 runs · Haiku alone ran later, and only on the 85-page check · API list prices as a proxy for subscription usage"), 4300),
+    "v2-coding": (page(
+        "Delegating to cheaper models: writing code",
+        "7 coding tasks, 2 runs per setup · estimated API cost per task group",
+        [section("2 simple tasks, small project", "a clear feature + a planted bug", [
+            {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 0.89,
+             "quality": ["Hidden tests: 13 of 13, both runs"]},
+            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "kind": "natural", "cost": 1.04,
+             "delta": "+17%", "quality": ["Hidden tests: 13 of 13, both runs"]},
+            {"name": "Skill-routed", "models": "Opus + Sonnet or Haiku", "kind": "routed", "cost": 1.05, "delta": "+18%",
+             "quality": ["Hidden tests: 13 of 13, both runs"]},
+            {"name": "Forced Haiku", "models": "Opus + Haiku", "kind": "haiku", "cost": 0.70, "delta": "−21%",
+             "quality": ["Hidden tests: 13 of 13, both runs"]},
+         ], base="Opus alone"),
+         section("3 harder tasks, small project", "a bug with a trap, a vague feature, a refactor", [
+            {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 2.41,
+             "quality": ["Hidden tests: 43 and 42 of 43"]},
+            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "kind": "natural", "cost": 2.61,
+             "delta": "+8%", "quality": ["Hidden tests: 43 and 42 of 43"]},
+            {"name": "Skill-routed", "models": "Opus + Sonnet and Haiku", "kind": "routed", "cost": 2.89, "delta": "+20%",
+             "quality": ["Hidden tests: 43 and 42 of 43"]},
+            {"name": "Forced Haiku", "models": "Opus + Haiku", "kind": "haiku", "cost": 1.80, "delta": "−25%",
+             "quality": ["Hidden tests: 43 and 42 of 43"]},
+            {"name": "Haiku alone", "models": "Haiku, no Opus", "kind": "solo", "cost": 0.11, "delta": "−95%",
+             "quality": ["Hidden tests: 43 and 43 of 43"]},
+         ], base="Opus alone"),
+         section("2 harder tasks, ~100k lines", "a REST endpoint, a bug far from its symptom", [
+            {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 1.95,
+             "quality": ["Official tests: 17 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged symptom: 2 of 2"]},
+            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "kind": "natural", "cost": 1.88, "delta": "−4%",
+             "quality": ["Official tests: 17 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged symptom: 2 of 2"]},
+            {"name": "Skill-routed", "models": "Opus + Sonnet and Haiku", "kind": "routed", "cost": 1.82, "delta": "−7%",
+             "quality": ["Official tests: 17 and 21 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged symptom: 2 of 2"]},
+            {"name": "Forced Haiku", "models": "Opus + Haiku", "kind": "haiku", "cost": 1.36, "delta": "−30%",
+             "quality": ["Official tests: 21 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged symptom: 2 of 2"]},
+            {"name": "Haiku alone", "models": "Haiku, no Opus", "kind": "solo", "cost": 0.15, "delta": "−93%",
+             "quality": ["Official tests: 17 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 0 of 2", "Flagged symptom: 0 of 2"]},
+         ], base="Opus alone")],
+        ["<b>Hidden tests:</b> written before the runs and copied in afterwards, so no run could see them. Each run's two scores are shown. "
+         "The whole unit suite also passed in every run, once a rare flaky test was re-run.",
+         "<b>Lost points are my test flaws, not bugs:</b> the 42s are runs that added a useful field my test didn't expect. The official 17s are runs that "
+         "sensibly required a completion time my test data left out. The corrected test fixes only that, and was written after seeing the first failure.",
+         "<b>Speed index and flagged symptom</b> aren't test scores. Runs were asked for an endpoint fast on millions of builds, and whether they added a database index "
+         "comes from reading the code. The bug report also described a symptom the bug doesn't seem to cause, and whether a run said so comes from reading its report."],
+        [],
+        "Sum of each task's mean cost · Haiku alone ran later, and not on the simple tasks · API list prices as a proxy for subscription usage"), 5400),
 }
 
 
