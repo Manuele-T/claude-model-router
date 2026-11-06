@@ -18,7 +18,7 @@
 set -euo pipefail
 
 task="${1:?task number, e.g. 07}"
-run="${2:?A, B, C, D, E or F}"
+run="${2:?A, B, C, D, E, F or H}"
 tag="${3:-}"
 SRC="${SRC:-$HOME/bench-src/small}"   # default: symlink to the private ~10k-line project
 repo="$(cd "$(dirname "$0")/.." && pwd)"
@@ -32,6 +32,7 @@ prompt="$(awk -F' \\| ' -v t="| $task" '$1 == t { print $3 }' "$tasks")"
 # Run A also blocks the Agent tool: on large tasks a global CLAUDE.md delegation rule can
 # otherwise make "no routing" runs spawn Sonnet subagents anyway.
 extra=()
+model=opus
 case "$run" in
   A) prompt="no routing. $prompt"; extra=(--disallowedTools Agent) ;;
   B) prompt="Use the model-router skill. $prompt" ;;
@@ -43,7 +44,9 @@ case "$run" in
   E) prompt="no routing. $prompt"; extra=(--disallowedTools Skill) ;;
   # F is D with the Agent tool blocked as well: tests whether losing subagents alone makes Opus more thorough.
   F) extra=(--disallowedTools Agent,Skill) ;;
-  *) echo "run must be A, B, C, D, E or F" >&2; exit 1 ;;
+  # H is F with Haiku as the main model: Haiku alone, with no Opus briefing, reviewing or testing.
+  H) model=haiku; extra=(--disallowedTools Agent,Skill) ;;
+  *) echo "run must be A, B, C, D, E, F or H" >&2; exit 1 ;;
 esac
 
 [ -e "$dest" ] && { echo "$dest already exists; remove it first" >&2; exit 1; }
@@ -59,7 +62,7 @@ if [ -n "${VENV:-}" ]; then
   export PATH="$VENV/bin:$PATH" PYTHONPATH="$dest/master:$dest/worker"
 fi
 claude --version > "${out%.json}.version"
-claude -p "$prompt" --model opus --effort medium --permission-mode auto --output-format json "${extra[@]}" > "$out"
+claude -p "$prompt" --model "$model" --effort medium --permission-mode auto --output-format json "${extra[@]}" > "$out"
 python3 - "$out" <<'EOF'
 import json, sys
 d = json.load(open(sys.argv[1]))

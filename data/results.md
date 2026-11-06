@@ -574,3 +574,54 @@ What Part 4 shows:
 **Limits.** Two runs per setup and two tasks. The bug is planted rather than found in the wild, and its fix is a single line next to an unused `branch` argument, a strong hint once a run gets there. These tasks were written by Claude Opus after seeing that Haiku did well, and two hidden tests in this batch and the last had flaws that only runs exposed.
 
 **Next:** every setup so far has Opus reviewing and testing. The open question is Haiku with no Opus behind it, as a new setup on the same tasks.
+
+## v2, Part 5: Haiku alone (setup H; tasks 53-57 and 43; 2026-11-06)
+
+Design in `data/tasks-v9.md`. H has no prompt prefix, `--model haiku`, Agent and Skill tools blocked, effort medium, so no Opus is involved. Tasks, sources and hidden tests are unchanged. Each ran twice, on Claude Code 2.1.317 (the same version as the others), but after the other arms rather than interleaved with them. Mismatches 0, fallbacks 0, no subagents. All 12 runs together cost $4.37.
+
+### Coding tasks (10 runs, $0.51 in total; the same 10 runs of F cost about $8.72)
+
+| Task | H r1 / r2 $ | Mean | F mean | C mean | H vs F | Hidden tests r1 / r2 | Suite without hidden test |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 53 Domain trap | 0.019 / 0.017 | **0.02** | 0.63 | 0.35 | -97% | 9 / 9 of 9 | pass |
+| 54 Vague feature | 0.092 / 0.025 | **0.06** | 1.01 | 0.71 | -94% | 12 / 12 of 12 | pass |
+| 55 Refactor | 0.037 / 0.032 | **0.04** | 0.77 | 0.74 | -95% | 22 / 22 of 22 | pass |
+| 56 Endpoint | 0.152 / 0.118 | **0.14** | 1.16 | 0.93 | -88% | official 9 / 9, corrected 13 / 13 of 13 | pass |
+| 57 Far-off bug | 0.011 / 0.012 | **0.01** | 0.79 | 0.43 | -99% | 8 / 8 of 8 | pass |
+
+| Task, H | Code +/- | Test lines + | Complexity added | Check $ | Suite runs | Edits | Rework | Wall min (F) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 53 | 4 / 1 | 19 | 0 | 0.003 | 4 | 4 | 1 | 1.6 (1.9) |
+| 54 | 63 / 3 | 134.5 | 20 | 0.028 | 3.5 | 11.5 | 2 | 2.6 (4.3) |
+| 55 | 591 / 511 | 0 | 0 | 0.009 | 1.5 | 7 | 0 | 2.9 (3.3) |
+| 56 | 107 / 0 | 254 | 6 | 0.081 | 4.5 | 10.5 | 2.5 | 4.1 (6.3) |
+| 57 | 1.5 / 0.5 | 45.5 | 0 | 0.003 | 3 | 3 | 1 | 1.4 (4.9) |
+
+The hidden-test results are as good as the other arms'. On 56, the official 9 of 13 reflects the test-data flaw from Part 4. On 54, both H runs scored 12 of 12: H r1 added an app-menu link in a field that stays empty in the test's case, so the strict comparison from Part 3 didn't catch it, and H r2 didn't add a link at all. So the app-menu link was handled by 1 of 2 runs, as in F, B and C. H r1 also reports an unrequested fix for the start-at-login bug from task 53. These run reports weren't verified beyond the tests.
+
+**What the hidden tests don't score, where H differed:**
+
+- **56, no index.** Both H runs counted in the database without adding an index and migration, while all 8 F, D, B and C runs added one. H still meets every hidden test. F r1's own benchmark suggests about 1 s without its index against 0.2 s with it on 5M builds, in-memory SQLite only.
+- **57, the unreproducible symptom.** Both H runs fixed the bug correctly. Neither said it couldn't reproduce the "missing names" part of the report, while all 8 runs with Opus did. H r1's summary says the bug produced wrong authors "in both directions".
+
+### Docs check, task 43 (2 runs)
+
+| | F | D | B | C | H |
+| --- | --- | --- | --- | --- | --- |
+| Cost r1 / r2 $ | 3.96 / 4.25 | 4.19 / 3.84 | 3.84 / 3.92 | 1.85 / 2.01 | 1.77 / 2.09 |
+| Mean (vs F) | 4.11 | 4.02 (-2%) | 3.88 (-5%) | 1.93 (-53%) | **1.93 (-53%)** |
+| Real errors (of 92) r1, r2 | 36, 38 | 39, 35 | 55, 70 | 58, 63 | **42, 41** |
+| Both runs combined | 49 | 43 | 77 | 72 | **54** |
+| Planted errors (of 20), by content | 20, 20 | 20, 20 | 20, 20 | 20, 20 | 20, 20 |
+| Line citations past end of file | 0%, 0% | 0%, 0% | 0%, 10% | 0%, 0% | **9%, 20%** |
+| Wall time per run | ~400 s | ~535 s | ~270 s | ~390 s | **~725 s** |
+
+Almost all of H's cost was Haiku's 5x rate on prompts over 100K tokens ($1.74 of $1.77 on r1; $2.06 of $2.09 on r2).
+
+- **This is the first task where H clearly loses.** At the same cost as C, it found 42 and 41 real errors against 58 and 63. C's fan-out to Haiku subagents, with Opus combining and re-checking, appears to find more than one Haiku working through the pages alone, though two runs can't show why.
+- **H still found slightly more per run than F or D**, at under half the price.
+- **Its reports are harder to use.** The line-based scorer showed only 17 and 14 of 20 planted errors, because some cited lines don't exist (line 48 of a 32-line page), and r2 gave some wrong file paths. By content, both runs found all 20.
+
+**How the real errors were scored.** Claude Opus read both H reports against the verified list of 92, built earlier from the other 8 runs. Matches are in `data/ground-truth/t43-H-scored.md` (gitignored). This judgement wasn't made blind, because I knew the setup. Claims outside the list (about 75 rows in H r1's report and 68 items in r2's, of which 42 and 41 matched) weren't verified, so H may have found real errors that aren't counted, and some of its claims may be wrong. False positives haven't been counted for any setup yet. The past-end-of-file figure only catches citations that can't exist, not ones that point to the wrong line.
+
+**What Part 5 shows, across all parts.** On small, testable coding tasks, Haiku alone got the same hidden-test results as anything with Opus, at 1-12% of the cost of Opus alone, and faster. On the largest review task, Opus plus Haiku found clearly more for the same money. The care Opus adds (indexes, flagging what it couldn't reproduce, accurate citations) doesn't show in my hidden tests but does show in the work. Results are 2 runs per setup, and no coding task here made Haiku alone fail, so where its limit lies is still unknown.

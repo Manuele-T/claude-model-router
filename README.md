@@ -132,6 +132,35 @@ Maybe those tasks were still too easy because the project is small. So I ran two
 
 So across five harder coding tasks, Opus plus Haiku was the cheapest setup, with no sign of worse code. That's not "Haiku is as good as Opus": every setup here has Opus reviewing and testing. The open question is how Haiku does with no Opus behind it.
 
+### v2: Haiku alone
+
+So I ran Haiku as the main model, with subagents blocked and no Opus anywhere, on the same five coding tasks and their [unchanged hidden tests](data/tasks-v9.md), plus the 85-page docs check, where the setups had actually differed.
+
+| Mean cost per run | Opus only, blocked | Opus plus Haiku (forced) | Haiku alone | Haiku alone vs Opus only |
+| --- | --- | --- | --- | --- |
+| Bug with a trap | $0.63 | $0.35 | **$0.02** | -97% |
+| Vague feature | $1.01 | $0.71 | **$0.06** | -94% |
+| Refactor | $0.77 | $0.74 | **$0.04** | -95% |
+| REST endpoint, ~100k lines | $1.16 | $0.93 | **$0.14** | -88% |
+| Far-off bug, ~100k lines | $0.79 | $0.43 | **$0.01** | -99% |
+
+On those coding tasks Haiku alone matched every other setup's hidden-test scores, and was also faster than Opus alone. The docs check is where it fell behind:
+
+| Docs check, 85 pages | Opus only, blocked | Opus only, spontaneous | Skill-routed | Opus plus Haiku (forced) | Haiku alone |
+| --- | --- | --- | --- | --- | --- |
+| Mean cost per run | $4.11 | $4.02 | $3.88 | $1.93 | **$1.93** |
+| Real errors found, of 92 (two runs) | 36, 38 | 39, 35 | 55, 70 | 58, 63 | **42, 41** |
+| Both runs combined | 49 | 43 | 77 | 72 | **54** |
+| Planted errors found, of 20 | 20, 20 | 20, 20 | 20, 20 | 20, 20 | 20, 20 |
+| Citations past the end of the file | 0%, 0% | 0%, 0% | 0%, 10% | 0%, 0% | **9%, 20%** |
+
+- **For coding tasks like these, the Opus part was most of the bill.** Haiku alone cost 1-12% of Opus alone, which beats Opus plus Haiku by far, and my tests saw no difference in correctness.
+- **On a big review job, Opus plus Haiku was clearly better:** the same cost as Haiku alone, with about 40-50% more real errors per run. Haiku's cost advantage also disappears, because its long prompts hit the 5x rate.
+- **Haiku alone still found a bit more than Opus alone on that docs check**, at under half the price.
+- **What my tests don't score may matter most.** On the endpoint, all 8 runs with Opus added a database index for speed, and neither Haiku-alone run did. On the bug, all 8 runs with Opus said they couldn't reproduce part of the report, and neither Haiku-alone run said so. On the docs check, up to a fifth of Haiku's line citations don't exist. So it got the work right on these tasks but took less care, and its reports were less reliable.
+
+**What I'd do today:** on small, testable coding tasks, try Haiku alone and review the result yourself. Want more care, or doing a big review? Use Opus delegating to Haiku. This is 2 runs per setup, on tasks every setup could do. Haiku alone hasn't yet met a coding task it fails, so this doesn't show where its limit is.
+
 ## How it works
 
 - **Three tiers.** `skills/model-router/SKILL.md` tells the orchestrator to default to Haiku for finding, listing and formatting, to use Sonnet for anything that reads code and makes a judgement, and to keep hard design or security reasoning on Opus itself. Tiny tasks stay inline. A failed Haiku result is retried once on Sonnet.
