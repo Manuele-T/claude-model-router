@@ -12,7 +12,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-COLORS = {"opus": "#2b7bd6", "natural": "#7b5cd6", "routed": "#ea6a36", "haiku": "#2e9e6b"}
+# Checked for colour-blind separation; every bar is also labelled by name.
+COLORS = {"opus": "#2b7bd6", "natural": "#c2407f", "routed": "#ea6a36", "haiku": "#2e9e6b", "solo": "#b8860b"}
 FOOT = "github.com/Manuele-T/claude-model-router"
 WIDTH = 3000
 
@@ -52,11 +53,11 @@ def esc(s):
     return html.escape(s)
 
 
-def section(title, note, rows):
+def section(title, note, rows, base="forced Opus"):
     top = max(r["cost"] for r in rows)
     out = [f"<h2>{esc(title)} <span>· {esc(note)}</span></h2>",
            '<div class="thead"><div>Run</div><div>Models used</div><div>Quality (higher is better)</div>'
-           '<div>Est. API cost</div><div>vs forced Opus</div></div>']
+           f'<div>Est. API cost</div><div>vs {esc(base)}</div></div>']
     for r in rows:
         width = int(440 * r["cost"] / top)
         small = f"<small>{esc(r['small'])}</small>" if r.get("small") else ""
@@ -82,7 +83,7 @@ def page(title, subtitle, sections, explanation, checker, foot_note):
     lines = "".join(
         f'<div class="l"><div>{esc(a)}</div><div>estimated {esc(b)} saved</div><div>→</div><b>{esc(c)}</b></div>'
         for a, b, c in checker)
-    box = f'<div class="box"><h3>The checker’s savings estimate vs reality</h3>{lines}</div>'
+    box = f'<div class="box"><h3>The checker’s savings estimate vs reality</h3>{lines}</div>' if checker else ""
     return (f"<!doctype html><html><head><meta charset='utf-8'><style>{CSS}</style></head><body>"
             f"<h1>{esc(title)}</h1><div class='sub'>{esc(subtitle)}</div>"
             + "".join(sections) + expl + box
@@ -183,6 +184,42 @@ CHARTS = {
         [("Skill-routed", "34%", "actually 38% cheaper"),
          ("Forced Haiku", "85%", "actually 75% cheaper")],
         LEGEND), 4200),
+    "haiku-alone": (page(
+        "Opus, Opus plus Haiku, or Haiku alone?",
+        "v2, 5 harder coding tasks and an 85-page docs check · estimated API cost",
+        [section("5 harder coding tasks", "sum of each task's mean, 2 runs each, 2 of them on ~100k lines", [
+            {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 4.36,
+             "quality": ["Working code in every run", "Added a speed index: 2 of 2", "Flagged a symptom: 2 of 2"]},
+            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "small": "could delegate, never did",
+             "kind": "natural", "cost": 4.49, "delta": "+3%",
+             "quality": ["Working code in every run", "Added a speed index: 2 of 2", "Flagged a symptom: 2 of 2"]},
+            {"name": "Skill-routed", "models": "Opus + Haiku and Sonnet", "kind": "routed", "cost": 4.71, "delta": "+8%",
+             "quality": ["Working code in every run", "Added a speed index: 2 of 2", "Flagged a symptom: 2 of 2"]},
+            {"name": "Forced Haiku", "models": "Opus + Haiku subagents", "small": "Opus briefs and reviews", "kind": "haiku",
+             "cost": 3.16, "delta": "−28%",
+             "quality": ["Working code in every run", "Added a speed index: 2 of 2", "Flagged a symptom: 2 of 2"]},
+            {"name": "Haiku alone", "models": "Haiku, no Opus at all", "kind": "solo", "cost": 0.26, "delta": "−94%",
+             "quality": ["Working code in every run", "Added a speed index: 0 of 2", "Flagged a symptom: 0 of 2"]},
+         ], base="Opus alone"),
+         section("Biggest review: docs check", "85 doc pages, mean of 2 runs", [
+            {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 4.11,
+             "quality": ["36 and 38 of 92 (49 combined)"]},
+            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "kind": "natural", "cost": 4.02,
+             "delta": "−2%", "quality": ["39 and 35 of 92 (43 combined)"]},
+            {"name": "Skill-routed", "models": "Opus + Sonnet subagents", "kind": "routed", "cost": 3.88, "delta": "−5%",
+             "quality": ["55 and 70 of 92 (77 combined)"]},
+            {"name": "Forced Haiku", "models": "Opus + Haiku subagents", "kind": "haiku", "cost": 1.93, "delta": "−53%",
+             "quality": ["58 and 63 of 92 (72 combined)"]},
+            {"name": "Haiku alone", "models": "Haiku, no Opus at all", "small": "up to 20% of line citations don't exist",
+             "kind": "solo", "cost": 1.93, "delta": "−53%", "quality": ["42 and 41 of 92 (54 combined)"]},
+         ], base="Opus alone")],
+        ["<b>Coding:</b> a bug with a trap, a vague feature, a refactor, a REST endpoint and a far-off bug. Scored by "
+         "hidden tests written before the runs (some with flaws that penalised careful runs; see the write-up). "
+         "The speed index (on the endpoint task) and flagging a symptom it couldn't reproduce (on the far-off bug) aren't hidden-test scores: they come from reading those runs' results.",
+         "<b>Docs check:</b> real errors on a list of 92 verified against the code by Claude Opus. The list predates Haiku alone. "
+         "Adding true claims checked later: forced Haiku 62 and 66, Haiku alone 52 and 45. <b>Combined</b> = distinct issues found by the two runs together."],
+        [],
+        "Two runs per setup · Haiku alone ran later, on the same Claude Code version · API list prices as a proxy for subscription usage"), 4000),
 }
 
 

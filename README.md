@@ -7,16 +7,40 @@ This repo is an experiment to find out. It contains two things:
 - **A Claude Code skill** (`skills/model-router/SKILL.md`) that makes Opus the manager. Opus splits the work and hands pieces to cheaper subagents: Haiku by default for finding, listing and counting, Sonnet for anything that needs understanding the code, and Opus itself for hard design or security reasoning. Tiny tasks stay with Opus. Every decision is logged.
 - **A Python checker** (`scripts/verify_models.py`) that reads Claude Code's own transcripts to prove which model actually ran and how many tokens each one used.
 
-**How the test works.** I ran 20 tasks across three codebases (~10k, ~22k and ~52k lines). Every task was run four ways, and the cost and quality compared:
+**How the test works.** I ran 30 tasks across four codebases (~10k, ~22k, ~52k and ~100k lines), each several ways, and compared cost and quality:
 
 1. **Opus only, forced** ("forced Opus" below): Opus is told `no routing.`, so it does everything itself. In the later beets runs the Agent tool was also blocked, so it couldn't spawn subagents at all.
 2. **Opus only, spontaneous** ("spontaneous Opus"): plain Claude Code on Opus, no skill. Opus may spawn subagents and decides by itself whether to. It never did.
 3. **Skill-routed:** Opus uses the skill and chooses which model each subagent runs on.
 4. **Forced Haiku:** Opus uses the skill, but every subagent must run on Haiku. Opus still plans, briefs and checks the work.
+5. **Haiku alone** (v2, six tasks): Haiku is the main model, with no Opus anywhere.
 
-**Scope:** almost all tasks were about reading and reviewing existing code (searches, inventories, module summaries, checking docs against code), plus a few small edits. Building new code from scratch wasn't tested in v1, so these results don't cover it; v2 below has first results on writing code.
+v2 also replaces forced Opus with a neutral baseline, "Opus only, blocked": no prompt prefix, subagents blocked.
 
-## At a glance
+**Scope:** v1 was almost all reading and reviewing existing code, plus a few small edits. v2 adds seven coding tasks: features, bug hunts and a refactor, scored by hidden tests. Costs are API list prices used as a proxy for subscription usage, and most setups ran only twice per task, so treat these as strong hints, not proof.
+
+## Where it ended up
+
+| What you're doing | What I'd use | Why |
+| --- | --- | --- |
+| A small, testable coding task you'll review yourself | **Haiku alone** | 1-12% of the cost of Opus alone on five harder coding tasks, with working code in every run |
+| Coding where care matters | **Opus delegating to Haiku** | 28% cheaper than Opus alone overall on those tasks, and Opus reviews the work |
+| A big review or audit | **Opus delegating to Haiku** | On an 85-page docs check: half the cost of Opus alone, and over 60% more real errors found |
+
+<p align="center">
+  <img src="charts/haiku-alone.png" alt="Five harder coding tasks: Opus alone $4.36, spontaneous Opus $4.49, skill-routed $4.71, forced Haiku $3.16, Haiku alone $0.26, all with working code; Haiku alone added no speed index and didn't flag a symptom it couldn't reproduce. Docs check: Opus alone $4.11 finding 36 and 38 of 92 real errors, spontaneous Opus $4.02 finding 39 and 35, skill-routed $3.88 finding 55 and 70, forced Haiku $1.93 finding 58 and 63, Haiku alone $1.93 finding 42 and 41" width="800">
+</p>
+
+- **Most of the bill is Opus, and on coding tasks like these it may not be needed.** My hidden tests saw no difference in correctness between Haiku alone and anything using Opus. But no coding task made it fail, so I don't know where its limit is.
+- **What Opus adds is care, and tests miss it.** All 8 Opus-led runs added a database index when asked for speed, and all 8 flagged a symptom they couldn't reproduce. Neither Haiku-alone run did either. Up to a fifth of Haiku's line citations on the docs check don't exist.
+- **Delegating moves money into checking.** On coding tasks, Opus plus Haiku spent up to 37% of a task's cost on checking after the first edit, against 7-26% for Opus alone.
+- **The routing skill rarely paid.** It often sends work to Sonnet, whose cached reads cost the same as Opus's. On coding it was usually the most expensive setup, though it was the most thorough on the biggest docs check.
+- **Size changes the answer.** On my smallest codebase in v1, Opus alone was the most accurate. On beets, forced Opus found the most on an 80-page check, at about six times forced Haiku's cost. So test on your own work.
+- **My own scoring had flaws.** Two hidden tests penalised careful runs, and one prompt described a symptom the bug doesn't seem to cause. All of it is reported rather than fixed afterwards: see the [limitations](#limitations).
+
+**Takeaway: cheaper tokens don't necessarily mean cheaper tasks, and the most expensive model isn't always the one doing the useful work. Measure the whole workflow on your own tasks.**
+
+## v1 at a glance
 
 I wanted to see whether, and how, Claude Opus decides to spawn subagents, and whether pushing it one way or the other (no subagents at all, only Haiku subagents, or the subagents my skill picks) changes the results. The short version, per codebase:
 
@@ -46,9 +70,9 @@ Across all three:
 
 **Takeaway: cheaper tokens don't necessarily mean cheaper tasks. Measure the whole workflow, not just the price of each model.**
 
-The full write-up follows. v1 as first published is tagged [`v1.0`](https://github.com/Manuele-T/claude-model-router/tree/v1.0).
+The full write-up follows. v1 as first published is tagged [`v1.0`](https://github.com/Manuele-T/claude-model-router/tree/v1.0), and this version [`v2.0`](https://github.com/Manuele-T/claude-model-router/tree/v2.0).
 
-## v2 (in progress): ~100k-line codebase
+## v2: ~100k-line codebase
 
 v2 adds a fourth, bigger codebase, [buildbot](https://github.com/buildbot/buildbot) (408 modules, ~91k lines), with the same three task types as beets. Two changes make it stricter than v1:
 
@@ -73,7 +97,7 @@ Each setup ran twice (three times where results were far apart), with the same v
 
 Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per setup, and "of 42/92" counts errors found by any run, not true recall. Per-run numbers and the scoring rules are in [`data/results.md`](data/results.md).
 
-### v2: writing code (first results)
+### v2: writing code
 
 "But I only use Claude for coding." So v2 also tests tasks that write code, on the small codebase: a well-specified feature touching 7-9 files, and a bug hunt from a user's symptom (one bug planted before any run, not caught by the existing tests). Each was scored by a hidden test file written before any run, plus the whole unit suite. Each setup ran twice ([`data/tasks-v6.md`](data/tasks-v6.md)).
 
@@ -178,7 +202,7 @@ Each task ran in a fresh clone of the project, headless (`claude -p`), with an O
 - **Skill-routed (B):** the prompt starts with `Use the model-router skill.`
 - **Forced Haiku (C):** the prompt starts with `Use the model-router skill. use haiku.`, so every subagent runs on Haiku.
 
-Cost is estimated from the token counts in the transcripts at API list prices (Haiku 5.5, Sonnet 5.5, Opus 5.5, including Haiku's 5x rate on prompts over 100K tokens), as a stand-in for subscription usage. Percentages are each setup's cost relative to forced Opus, computed from unrounded costs. Per-task numbers are in [`data/results.md`](data/results.md), prompts in [`data/tasks.md`](data/tasks.md), [`data/tasks-v2.md`](data/tasks-v2.md), [`data/tasks-v3.md`](data/tasks-v3.md) and [`data/tasks-v4.md`](data/tasks-v4.md).
+Cost is estimated from the token counts in the transcripts at API list prices (Haiku 5.5, Sonnet 5.5, Opus 5.5, including Haiku's 5x rate on prompts over 100K tokens), as a stand-in for subscription usage. Percentages are each setup's cost relative to forced Opus, computed from unrounded costs. Per-task numbers are in [`data/results.md`](data/results.md), prompts in [`data/tasks.md`](data/tasks.md), [`data/tasks-v2.md`](data/tasks-v2.md), [`data/tasks-v3.md`](data/tasks-v3.md) and [`data/tasks-v4.md`](data/tasks-v4.md), and for v2 in [`data/tasks-v5.md`](data/tasks-v5.md) to [`data/tasks-v9.md`](data/tasks-v9.md).
 
 **Reading the doc-check scores:** each setup ran twice, so a score like "7 and 8 of 9" is each run's count of the known doc problems it found (higher is better). "Combined" is the number of distinct problems the two runs found together.
 
@@ -296,8 +320,11 @@ Routing choices were not stable, though. With identical prompts, routes often ch
 
 ## Limitations
 
-- 20 tasks on three codebases is a small sample.
-- The smallest codebase is a private throwaway project of mine, so its results can't be rerun by others. The rich and beets sets can be rerun.
+- 30 tasks on four codebases is a small sample, with mostly 2 runs per setup.
+- The smallest codebase is a private throwaway project of mine, so its results can't be rerun by others, and its prompts and hidden tests stay private (hashes are public). The rich, beets and buildbot reading sets can be rerun. Coding task 57 uses a planted bug, one line removed.
+- Claude Opus designed the coding tasks after seeing that Haiku did well, and wrote their hidden tests. Committing them before the runs reduces the risk of bias but doesn't remove it. Two hidden tests penalised careful runs: both official scores are kept, with a corrected score labelled as added afterwards on one of them. One prompt described a symptom the planted bug doesn't seem to cause.
+- Haiku alone ran after the other setups, not interleaved with them, though on the same Claude Code version. It wasn't run on most reading tasks.
+- False positives on the v2 doc checks are a floor: one confirmed false claim among about 1,000, judged by Claude Opus knowing which setup wrote each report, without re-reading claims that closely matched a verified error.
 - Costs use API list prices as a proxy for subscription usage; Anthropic doesn't publish the exact subscription weighting.
 - On the everyday task set, each arm ran once; the other sets ran each arm twice.
 - Opus alone varies a lot from run to run (forced Opus found 10 to 16 of 35 issues on the same task), so the gap between forced and spontaneous Opus is consistent in direction but uncertain in size.
@@ -315,7 +342,7 @@ python3 scripts/verify_models.py --since 2026-10-25
 
 Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.` to turn it off.
 
-To rerun a benchmark task: `scripts/run_bench.sh <task> <A|B|C|D|F> [tag]` runs one row of `data/tasks.md` headless in a fresh clone of the bench project. Arm A also blocks the Agent tool, so a delegation rule in a global `CLAUDE.md` can't leak subagents into the forced Opus runs; arm D blocks the Skill tool instead, so the installed router skill can't turn a spontaneous run into a skill-routed one. Set `TASKS=data/tasks-v2.md`, `TASKS=data/tasks-v3.md` (with `SRC` pointing at a rich checkout), `TASKS=data/tasks-v4.md` (with `SRC` pointing at a beets checkout) or `TASKS=data/tasks-v5.md` (with `SRC` pointing at a buildbot checkout) for the other task sets. Arm F (the v2 baseline) blocks both tools and adds no prefix.
+To rerun a benchmark task: `scripts/run_bench.sh <task> <A|B|C|D|F> [tag]` runs one row of `data/tasks.md` headless in a fresh clone of the bench project. Arm A also blocks the Agent tool, so a delegation rule in a global `CLAUDE.md` can't leak subagents into the forced Opus runs; arm D blocks the Skill tool instead, so the installed router skill can't turn a spontaneous run into a skill-routed one. Set `TASKS=data/tasks-v2.md`, `TASKS=data/tasks-v3.md` (with `SRC` pointing at a rich checkout), `TASKS=data/tasks-v4.md` (with `SRC` pointing at a beets checkout) or `TASKS=data/tasks-v5.md` (with `SRC` pointing at a buildbot checkout) for the other task sets. Arm F (the v2 baseline) blocks both tools and adds no prefix. Arm H (Haiku alone) is F with Haiku as the main model. `TASKS=data/tasks-v6.md` to `tasks-v9.md` are the coding tasks; the small project's real prompts are private.
 
 ## Credits
 

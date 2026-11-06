@@ -8,6 +8,7 @@
 #   scripts/run_bench.sh 07 D    # run D: "natural", plain prompt; Opus decides on subagents, no skills
 #   scripts/run_bench.sh 07 E    # run E: D plus the "no routing." prefix (framing test)
 #   scripts/run_bench.sh 07 F    # run F: D with the Agent tool blocked too (tool-setup test)
+#   scripts/run_bench.sh 07 H    # run H: F with Haiku as the main model, no Opus at all
 #   scripts/run_bench.sh 07 B v2 # optional tag: a repeat run in its own clone, ~/bench/t07-Bv2
 #   TASKS=data/tasks-v2.md scripts/run_bench.sh 11 A r1   # another task table
 #
