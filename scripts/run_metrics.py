@@ -26,13 +26,16 @@ sys.path.insert(0, str(Path(__file__).parent))
 from verify_models import HAIKU_LONG_PROMPT, PROJECTS_DIR, cost, family, read_jsonl  # noqa: E402
 
 BENCH = Path.home() / "bench"
-BASELINES = {"52": "b975531"}      # default below; 52 ran on the copy with one planted bug
+# Default below. 52 ran on the copy with one planted bug, 56 on buildbot. 57 isn't listed by hash:
+# its source is a one-commit copy, so its baseline is the clone's root commit.
+BASELINES = {"52": "b975531", "56": "c5cdcf3"}
+ROOT_COMMIT_TASKS = {"57"}
 DEFAULT_BASELINE = "a3c99c4"
 ARMS = "FDBC"
 EDIT_TOOLS = {"Edit", "Write", "NotebookEdit"}
 AGENT_TOOLS = {"Agent", "Task"}
-TEST_RE = re.compile(r"\bunittest\b|\bpytest\b")
-HIDDEN = ":(exclude)tests/unit/test_hidden_*"
+TEST_RE = re.compile(r"\bunittest\b|\bpytest\b|\btrial\b")
+HIDDEN = ":(exclude,glob)**/test_hidden_*"
 
 
 # --- diff -------------------------------------------------------------------------------------
@@ -105,14 +108,17 @@ def top_level_defs(source: str | None) -> set[str]:
 def diff_metrics(run: str) -> dict:
     clone = BENCH / run
     task = run[1:3]
-    base = BASELINES.get(task, DEFAULT_BASELINE)
+    if task in ROOT_COMMIT_TASKS:
+        base = git(clone, "rev-list", "--max-parents=0", "HEAD").strip()
+    else:
+        base = BASELINES.get(task, DEFAULT_BASELINE)
     m = defaultdict(int)
     old_defs, new_defs = set(), set()
     before_total = after_total = 0
     highest = 0
     for path, added, removed in changed_files(clone, base):
         old = at_base(clone, base, path)
-        if path.startswith("tests/"):
+        if path.startswith("tests/") or "/test/" in path:
             m["test_added"] += added
             m["test_removed"] += removed
             if old is not None:

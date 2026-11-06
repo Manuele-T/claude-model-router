@@ -53,6 +53,11 @@ git -C "$dest" remote remove origin
 
 echo "== t${task}-${run}${tag}: $prompt"
 cd "$dest"
+# Tasks that need their own test dependencies: VENV puts a venv first on PATH, and buildbot's
+# code is imported from this clone rather than from the venv's editable install.
+if [ -n "${VENV:-}" ]; then
+  export PATH="$VENV/bin:$PATH" PYTHONPATH="$dest/master:$dest/worker"
+fi
 claude --version > "${out%.json}.version"
 claude -p "$prompt" --model opus --effort medium --permission-mode auto --output-format json "${extra[@]}" > "$out"
 python3 - "$out" <<'EOF'
