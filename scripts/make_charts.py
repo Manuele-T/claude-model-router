@@ -46,6 +46,9 @@ h2 span {{ font-size: 44px; font-weight: 400; color: #555; }}
 .box .l {{ display: grid; grid-template-columns: 760px 600px 80px 1fr; font-size: 44px; color: #444; margin-bottom: 26px; }}
 .box .l b {{ color: #111; }}
 .foot {{ margin-top: 110px; padding-top: 50px; border-top: 2px solid #ddd; color: #777; font-size: 36px; line-height: 1.9; }}
+.depth {{ grid-template-columns: 390px 400px 360px 630px 410px 340px; }}
+.bar small {{ display: block; font-size: 32px; color: #777; margin-top: 2px; }}
+.thead.depth div:last-child {{ text-align: left; }}
 """
 
 
@@ -74,6 +77,30 @@ def section(title, note, rows, base="forced Opus", cost_label="Est. API cost"):
             f'<div class="q">{quality}</div>'
             f'<div class="bar"><i style="width:{width}px;background:{COLORS[r["kind"]]}"></i>${r["cost"]:.2f}</div>'
             f'<div class="{cls}">{esc(delta)}</div></div>')
+    return "\n".join(out)
+
+
+def depth_section(title, note, rows):
+    """Two bar columns, read and written, each on one scale shared by every section of the chart."""
+    out = [f"<h2>{esc(title)} <span>· {esc(note)}</span></h2>",
+           '<div class="thead depth"><div>Run</div><div>Models used</div><div>Real errors found</div>'
+           "<div>Tool output read, per run</div><div>Tokens written, per run</div><div>Est. API cost</div></div>"]
+    for r in rows:
+        read_mean = sum(r["read"]) / 2
+        written_mean = sum(r["written"]) / 2
+        small = f"<small>{esc(r['small'])}</small>" if r.get("small") else ""
+        color = COLORS[r["kind"]]
+        lo, hi = sorted(r["written"])
+        out.append(
+            f'<div class="row depth"><div class="n">{esc(r["name"])}</div>'
+            f'<div class="m">{esc(r["models"])}{small}</div>'
+            f'<div class="q">{esc(r["errors"])}<small>{r["combined"]} combined</small></div>'
+            f'<div class="bar"><i style="width:{int(340 * read_mean / 1450)}px;background:{color}"></i>'
+            f'{min(r["read"]):,}-{max(r["read"]):,}k</div>'
+            f'<div class="bar"><i style="width:{int(200 * written_mean / 212.5)}px;background:{color}"></i>'
+            f"{lo}-{hi}k</div>"
+            f'<div class="bar"><i style="width:{int(170 * r["cost"] / 9.20)}px;background:{color}"></i>'
+            f'<span>${r["cost"]:.2f}<small>{esc(r.get("delta", "baseline"))}</small></span></div></div>')
     return "\n".join(out)
 
 
@@ -327,6 +354,38 @@ CHARTS = {
          "<b>Both runs missed:</b> errors on the list that neither of the setup's two runs found. Lower is better. <b>False claims:</b> errors a run reported that I confirmed were wrong. This is a minimum, judged by Claude Opus knowing which setup wrote each report, and not counted on beets."],
         [],
         V2_KEY, EXPL), 4020),
+    "v2-reading-depth": (page(
+        "How much did each setup actually read?",
+        "v2 doc checks, measured from the run transcripts · two runs per setup",
+        [depth_section("85-page doc check", "buildbot, ~100k lines", [
+            {**V2_FREE, "read": (454, 471), "written": (31, 26), "errors": "39 and 35 of 92", "combined": 43,
+             "cost": 4.02, "delta": "−2%"},
+            {**V2_OPUS, "read": (532, 563), "written": (30, 25), "errors": "36 and 38 of 92", "combined": 49,
+             "cost": 4.11},
+            {**V2_H, "read": (620, 697), "written": (107, 103), "errors": "42 and 41 of 92", "combined": 54,
+             "cost": 1.93, "delta": "−53%"},
+            {**V2_SKILL, "models": "Opus + Sonnet", "small": "5-7 subagents", "read": (928, 981), "written": (61, 60),
+             "errors": "55 and 70 of 92", "combined": 77, "cost": 3.88, "delta": "−5%"},
+            {**V2_OH, "small": "6-7 subagents", "read": (1252, 1649), "written": (188, 237),
+             "errors": "58 and 63 of 92", "combined": 72, "cost": 1.93, "delta": "−53%"},
+         ]),
+         depth_section("80-page doc check", "beets, ~52k lines, v1 runs re-scored", [
+            {**V2_FREE, "read": (618, 835), "written": (34, 30), "errors": "27 and 35 of 61", "combined": 36,
+             "cost": 6.01, "delta": "−35%"},
+            {"name": "Forced Opus", "models": "Opus, no subagents", "small": "told not to delegate", "kind": "opus",
+             "read": (868, 698), "written": (50, 44), "errors": "41 and 33 of 61", "combined": 44, "cost": 9.20},
+            {**V2_SKILL, "models": "Opus + Sonnet", "small": "8 subagents", "read": (1075, 1134), "written": (53, 60),
+             "errors": "30 and 28 of 61", "combined": 35, "cost": 3.95, "delta": "−57%"},
+            {**V2_OH, "small": "8 subagents", "read": (1291, 1283), "written": (167, 188),
+             "errors": "30 and 30 of 61", "combined": 39, "cost": 1.49, "delta": "−84%"},
+         ])],
+        ["<b>What it shows:</b> on buildbot, real errors rose with the amount read. On beets they didn't: forced Opus read less than either delegated setup and still found the most. So volume can't be the whole story.",
+         "<b>Tool output read:</b> characters returned to the agents by their tools, mostly files and command output, summed across Opus and its subagents. Subagents' reports back to Opus aren't counted. Re-reads are, so this measures work done, not distinct pages. Bars show the mean of two runs.",
+         "<b>Tokens written:</b> all output tokens, thinking included, summed across Opus and its subagents.",
+         "<b>Est. API cost:</b> mean cost per run at API list prices, a proxy for subscription usage. Percentages compare with the baseline: Opus alone on buildbot, forced Opus on beets. Bars use one scale across both checks.",
+         "<b>“36 and 38 of 92”:</b> each setup ran twice. Its first run found 36 and its second found 38 of the 92 real errors on the list. Higher is better. The list holds errors the runs reported, each confirmed against the code by Claude Opus, so it can't include errors every run missed. <b>Combined</b> = different errors found across both runs."],
+        [],
+        "Measured after the runs on two tasks, not a planned test, so treat this as a hint", EXPL), 3920),
 }
 
 
