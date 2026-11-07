@@ -2,379 +2,61 @@
 
 Does delegating work to cheaper models actually save money?
 
-This repo is an experiment to find out. It contains two things:
+This repo is an experiment to find out. It has two parts:
 
-- **A Claude Code skill** (`skills/model-router/SKILL.md`) that makes Opus the manager. Opus splits the work and hands pieces to cheaper subagents: Haiku by default for finding, listing and counting, Sonnet for anything that needs understanding the code, and Opus itself for hard design or security reasoning. Tiny tasks stay with Opus. Every decision is logged.
+- **A Claude Code skill** (`skills/model-router/SKILL.md`) that makes Opus the manager, handing work to cheaper subagents and logging every decision.
 - **A Python checker** (`scripts/verify_models.py`) that reads Claude Code's own transcripts to prove which model actually ran and how many tokens each one used.
 
-**How the test works.** I ran 30 tasks across four codebases (~10k, ~22k, ~52k and ~100k lines), each several ways, and compared cost and quality:
+## The two experiments
 
-1. **Opus only, forced** ("forced Opus" below): Opus is told `no routing.`, so it does everything itself. In the later beets runs the Agent tool was also blocked, so it couldn't spawn subagents at all.
-2. **Opus only, spontaneous** ("spontaneous Opus"): plain Claude Code on Opus, no skill. Opus may spawn subagents and decides by itself whether to. It never did.
-3. **Skill-routed:** Opus uses the skill and chooses which model each subagent runs on.
-4. **Forced Haiku:** Opus uses the skill, but every subagent must run on Haiku. Opus still plans, briefs and checks the work.
-5. **Haiku alone** (v2, six tasks): Haiku is the main model, with no Opus anywhere.
+### v1: reading code
 
-v2 also replaces forced Opus with a neutral baseline, "Opus only, blocked": no prompt prefix, subagents blocked.
+20 tasks on three codebases, up to ~52k lines, comparing Opus alone, Opus free to delegate, my routing skill, and Opus delegating only to Haiku.
 
-**Scope:** v1 was almost all reading and reviewing existing code, plus a few small edits. v2 adds seven coding tasks: features, bug hunts and a refactor, scored by hidden tests. Costs are API list prices used as a proxy for subscription usage, and most setups ran only twice per task, so treat these as strong hints, not proof.
+- **Small codebase:** Opus alone was the most accurate per run, and the skill cost 14-30% more for no gain.
+- **~22k lines:** Opus plus Haiku matched Opus's quality at 41% less.
+- **~52k lines:** Opus plus Haiku cost 75% less, but forced Opus found the most on the biggest docs check.
+- **Paper estimates misled:** re-pricing delegated work at Opus rates suggested 34-85% savings, while real results ranged from 30% more expensive to 75% cheaper.
 
-## Where it ended up
+**[Read the v1.0 results and discussion](docs/v1-results.md)**
+
+### v2: bigger code, writing code, and no Opus at all
+
+94 runs on 10 tasks: 3 reading tasks on buildbot (~100k lines), and 7 coding tasks scored by hidden tests. It also added Haiku alone, with no Opus anywhere.
+
+- **Coding:** every setup produced working code. On five harder tasks, Haiku alone cost 94% less than Opus alone.
+- **Big reviews:** on an 85-page docs check, Opus plus Haiku cost half as much as Opus alone and found over 60% more real errors. It also found about 30% more than Haiku alone at the same price.
+- **What Opus adds is care:** all 8 Opus-led runs added a speed index when asked for speed and flagged a symptom they couldn't reproduce. Neither Haiku-alone run did either.
+- **My routing skill rarely paid off**, and left alone, Opus never delegated.
+
+**[Read the v2.0 results and discussion](docs/v2-results.md)**
+
+## What I'd use today
 
 | What you're doing | What I'd use | Why |
 | --- | --- | --- |
-| A small, testable coding task you'll review yourself | **Haiku alone** | 1-12% of the cost of Opus alone on five harder coding tasks, with working code in every run |
-| Coding where care matters | **Opus delegating to Haiku** | 28% cheaper than Opus alone overall on those tasks, and Opus reviews the work |
-| A big review or audit | **Opus delegating to Haiku** | On an 85-page docs check: half the cost of Opus alone, and over 60% more real errors found |
+| A small, testable coding task you'll review yourself | **Haiku alone** | 1-12% of Opus alone's cost on five harder coding tasks, with working code in every run |
+| Coding where care matters | **Opus delegating to Haiku** | 28% cheaper than Opus alone on those tasks, and Opus reviews the work |
+| A big review or audit | **Opus delegating to Haiku** | Half the cost of Opus alone on an 85-page docs check, with over 60% more real errors found |
 
 <p align="center">
-  <img src="charts/haiku-alone.png" alt="Five harder coding tasks: Opus alone $4.36, spontaneous Opus $4.49, skill-routed $4.71, forced Haiku $3.16, Haiku alone $0.26, all with working code; Haiku alone added no speed index and didn't flag a symptom it couldn't reproduce. Docs check: Opus alone $4.11 finding 36 and 38 of 92 real errors, spontaneous Opus $4.02 finding 39 and 35, skill-routed $3.88 finding 55 and 70, forced Haiku $1.93 finding 58 and 63, Haiku alone $1.93 finding 42 and 41" width="800">
+  <img src="charts/haiku-alone.png" alt="Five harder coding tasks: Opus alone $4.36, spontaneous Opus $4.49, skill-routed $4.71, forced Haiku $3.16, Haiku alone $0.26, all with working code. Docs check: Opus alone $4.11 finding 36 and 38 of 92 real errors, spontaneous Opus $4.02 finding 39 and 35, skill-routed $3.88 finding 55 and 70, forced Haiku $1.93 finding 58 and 63, Haiku alone $1.93 finding 42 and 41" width="800">
 </p>
 
-- **Most of the bill is Opus, and on coding tasks like these it may not be needed.** My hidden tests saw no difference in correctness between Haiku alone and anything using Opus. But no coding task made it fail, so I don't know where its limit is.
-- **What Opus adds is care, and tests miss it.** All 8 Opus-led runs added a database index when asked for speed, and all 8 flagged a symptom they couldn't reproduce. Neither Haiku-alone run did either. Up to a fifth of Haiku's line citations on the docs check don't exist.
-- **Delegating moves money into checking.** On coding tasks, Opus plus Haiku spent up to 37% of a task's cost on checking after the first edit, against 7-26% for Opus alone.
-- **The routing skill rarely paid.** It often sends work to Sonnet, whose cached reads cost the same as Opus's. On coding it was usually the most expensive setup, though it was the most thorough on the biggest docs check.
-- **Size changes the answer.** On my smallest codebase in v1, Opus alone was the most accurate. On beets, forced Opus found the most on an 80-page check, at about six times forced Haiku's cost. So test on your own work.
-- **My own scoring had flaws.** Two hidden tests penalised careful runs, and one prompt described a symptom the bug doesn't seem to cause. All of it is reported rather than fixed afterwards: see the [limitations](#limitations).
+**Treat these as strong hints, not proof.** Most setups ran twice per task, costs are API prices used as a proxy for subscription usage, and Claude Opus wrote my hidden tests and verified the errors. Two of those tests had flaws, reported in the results. No coding task made Haiku alone fail, so I don't know where its limit is. Test on your own work.
 
-**Takeaway: cheaper tokens don't necessarily mean cheaper tasks, and the most expensive model isn't always the one doing the useful work. Measure the whole workflow on your own tasks.**
-
-## v1 at a glance
-
-I wanted to see whether, and how, Claude Opus decides to spawn subagents, and whether pushing it one way or the other (no subagents at all, only Haiku subagents, or the subagents my skill picks) changes the results. The short version, per codebase:
-
-**Smaller codebase (~10k lines): let Opus work alone.** Forced Opus was the most accurate per run. Skill routing cost 14-30% more for no gain; forced Haiku broke even but had the weakest docs check (4 of 9 issues combined, against 8 for forced Opus). Spontaneous Opus matched forced Opus at 1-16% less.
-
-<p align="center">
-  <img src="charts/smaller-codebase.png" alt="Smaller codebase: spontaneous Opus cost 1% and 16% less than forced Opus; skill-routed runs cost 14% more on everyday tasks and 30% more on reading-heavy tasks; forced Haiku was 5% cheaper and break-even; the checker estimated savings of 44-77%" width="800">
-</p>
-
-**Larger codebase (rich, ~22k lines): forced Haiku was the best value.** Same quality as forced Opus (11 of 12 doc issues combined, against 10) at 41% less. Skill routing sent most work to Sonnet and cost 11% more.
-
-<p align="center">
-  <img src="charts/larger-codebase.png" alt="Larger codebase: spontaneous Opus cost 14% less than forced Opus, skill-routed runs 11% more and forced Haiku 41% less; the checker estimated savings of 45% and 84%" width="800">
-</p>
-
-**Largest codebase (beets, ~52k lines): delegation finally paid.** Forced Opus worked hardest and found the most on the 80-page docs check (44 of 61 issues combined after a re-check, against 35-39 for the others; first scored as 45 of 51 against 30-34), but one long session cost $9 per run. Forced Haiku cost 75% less overall and found the most on the reference docs (24 of 35 combined, against 17); skill routing cost 38% less.
-
-<p align="center">
-  <img src="charts/largest-codebase.png" alt="Largest codebase: spontaneous Opus cost 32% less than forced Opus, skill-routed runs 38% less and forced Haiku 75% less; on the 80-page docs check all three found fewer issues" width="800">
-</p>
-
-Across all three:
-
-- **Left alone, Opus never delegated**, not even on 80 pages. It cost 1-32% less than forced Opus because it put in less effort, and on beets it found clearly fewer issues.
-- **Sonnet helpers barely save**: their cached-context reads cost the same as Opus's, and the skill sent most comprehension work to Sonnet.
-- **The obvious savings estimate was misleading.** Re-pricing delegated tokens at Opus rates suggested 34-85% savings; head-to-head, results ranged from 30% more expensive to 75% cheaper. Delegation adds briefing, duplicated reading and re-checking, which only pays off once the job is big enough to split.
-
-**Takeaway: cheaper tokens don't necessarily mean cheaper tasks. Measure the whole workflow, not just the price of each model.**
-
-The full write-up follows. v1 as first published is tagged [`v1.0`](https://github.com/Manuele-T/claude-model-router/tree/v1.0), and this version [`v2.0`](https://github.com/Manuele-T/claude-model-router/tree/v2.0).
-
-## v2: ~100k-line codebase
-
-v2 adds a fourth, bigger codebase, [buildbot](https://github.com/buildbot/buildbot) (408 modules, ~91k lines), with the same three task types as beets. Two changes make it stricter than v1:
-
-- **A neutral baseline.** "Opus only, blocked" gets no prompt prefix; the Agent and Skill tools are blocked, so it can't delegate and isn't told anything. v1's forced Opus was told `no routing.`, which turned out to change how hard it worked.
-- **Planted errors.** Before any run, 30 wrong claims were planted in the doc pages (wrong defaults, renamed parameters), so recall on them is true recall. Real errors found by the runs were verified against the code and counted separately.
-
-Each setup ran twice (three times where results were far apart), with the same v1 skill:
-
-| | Opus only, blocked | Opus only, spontaneous | Skill-routed | Forced Haiku |
-| --- | --- | --- | --- | --- |
-| Estimated cost, all three tasks, mean per run | $8.98 | $8.26 (-8%) | $10.19 (+13%) | $4.44 (-51%) |
-| Module summaries: modules covered | all | all | all | all |
-| Planted doc errors found (of 30) | 30, 30 | 30, 30 | 30, 30 | 30, 30 |
-| Real doc errors, 2-page check (of 42 verified) | 10 and 17 (22 combined) | 9 and 9 (12 combined) | 17 and 21 (26 combined) | 20 and 23 (28 combined) |
-| Real doc errors, 85-page check (of 92 verified) | 36 and 38 (49 combined) | 39 and 35 (43 combined) | 55 and 70 (77 combined) | 58 and 63 (72 combined) |
-| Subagents | 0 | 0 | 4-10 per task, all Sonnet | 4-12 per task, all Haiku |
-
-- **Forced Haiku halved the cost on every task and found more than Opus alone on both doc checks.** This reverses beets, where Opus alone was the most thorough on the biggest check. At this size, a single Opus session covers less than several parallel readers whose findings Opus then re-checks.
-- **The skill still sent everything to Sonnet.** It was the most thorough on the 85-page check, but it saved at most 5% and cost 13% more overall.
-- **Left alone, Opus still never delegated** (0 subagents in 6 runs) and cost about the same as blocked Opus.
-- **Every run caught every planted error**, so they were too easy; the real errors are what separate the setups.
-
-<p align="center">
-  <img src="charts/v2-reading.png" alt="Reading buildbot: all three tasks cost $8.98 for Opus alone, $8.26 spontaneous Opus, $10.19 skill-routed and $4.44 forced Haiku; on the 85-page docs check Opus alone found 36 and 38 of 92 real errors for $4.11, spontaneous Opus 39 and 35 for $4.02, skill-routed 55 and 70 for $3.88, forced Haiku 58 and 63 for $1.93, and Haiku alone 42 and 41 for $1.93" width="800">
-</p>
-
-Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per setup, and "of 42/92" counts errors found by any run, not true recall. Per-run numbers and the scoring rules are in [`data/results.md`](data/results.md).
-
-### v2: writing code
-
-<p align="center">
-  <img src="charts/v2-coding-small.png" alt="Writing code on the small project: on 2 simple tasks, costs were $0.89 for Opus alone, $1.04 free Opus, $1.05 skill-routed and $0.70 Opus plus Haiku, all passing 13 of 13 hidden tests; on 3 harder tasks, $2.41, $2.61, $2.89, $1.80 and $0.11 for Haiku alone, with the lost points coming from a flaw in my test" width="800">
-</p>
-
-<p align="center">
-  <img src="charts/v2-coding-large.png" alt="Writing code on buildbot: 2 harder tasks cost $1.95 for Opus alone, $1.88 free Opus, $1.82 skill-routed, $1.36 Opus plus Haiku and $0.15 Haiku alone. All scored 21 of 21 on corrected tests. All Opus-led runs added a speed index and flagged the odd symptom; neither Haiku-alone run did" width="800">
-</p>
-
-"But I only use Claude for coding." So v2 also tests tasks that write code, on the small codebase: a well-specified feature touching 7-9 files, and a bug hunt from a user's symptom (one bug planted before any run, not caught by the existing tests). Each was scored by a hidden test file written before any run, plus the whole unit suite. Each setup ran twice ([`data/tasks-v6.md`](data/tasks-v6.md)).
-
-| | Opus only, blocked | Opus only, spontaneous | Skill-routed | Forced Haiku |
-| --- | --- | --- | --- | --- |
-| Feature, mean cost | $0.67 | $0.71 (+5%) | $0.65 (-4%) | $0.46 (-31%) |
-| Bug fix, mean cost | $0.22 | $0.33 (+53%) | $0.40 (+86%) | $0.24 (+12%) |
-| Hidden tests and full suite | all passed | all passed | all passed | all passed |
-| Subagents per run | 0 | 0 | 0-2 | 1 Haiku |
-
-- **Every setup wrote correct code, but these tasks were too easy to expose a gap.** This doesn't show that Haiku codes as well as Opus. It shows Haiku can do a small, well-specified job with Opus reviewing.
-- **Forced Haiku was cheapest on the feature; Opus alone was cheapest and fastest on the small fix**, where delegation overhead outweighs the cheaper tokens.
-- **The amounts are small** (under $0.30 per run between setups), and Opus alone varied by 48% between two runs of the same task, so only Haiku's feature saving stands out.
-
-### v2: harder coding tasks
-
-Those tasks were too easy, so I added three harder ones, on the same small codebase: a real bug whose obvious one-line fix fails, a vaguely worded feature ("rename a profile; whatever worked under the old name must keep working"), and a refactor splitting a ~700-line module with no behaviour change. Tasks, scoring rules and hashes of the private tests were [committed before any run](data/tasks-v7.md). Each setup ran twice.
-
-| Mean cost per run | Opus only, blocked | Opus only, spontaneous | Skill-routed | Forced Haiku |
-| --- | --- | --- | --- | --- |
-| Bug with a trap | $0.63 | $0.69 (+11%) | $0.57 (-8%) | $0.35 (-44%) |
-| Vague feature | $1.01 | $1.04 (+3%) | $1.26 (+25%) | $0.71 (-30%) |
-| Refactor | $0.77 | $0.87 (+13%) | $1.05 (+36%) | $0.74 (-5%) |
-| **All three** | **$2.41** | **$2.61 (+8%)** | **$2.89 (+20%)** | **$1.80 (-25%)** |
-| Share spent on checking, after the first edit | 7-26% | 9-22% | 26-35% | 17-31% |
-| Code lines added, vague feature | 111 | 106 | 88 | 70 |
-
-Hidden tests: every run passed all 9 on the bug and all 22 on the refactor. On the feature, every setup scored 12 and 11 of 12, and that lost point is a flaw in my test (see below).
-
-- **Forced Haiku was cheapest with no sign of lower quality, but these tasks still didn't separate the setups.** No run fell for the trap. Opus reviews and tests in every setup, so a mistake by a helper may get fixed before scoring. What this shows is "Opus plus Haiku" holding up, not Haiku alone.
-- **The saving depends on the task.** Haiku saved 44% on the bug and only 5% on the refactor, where Opus still has to understand the code and check the result. It was also slower than Opus alone on all three tasks.
-- **Delegating moves money into checking.** Checking cost more in both delegating setups than in Opus alone on all three tasks, up to 56% of one skill-routed run.
-- **Cheaper helpers didn't over-engineer.** On the feature, Opus alone wrote the most code and added the most complexity.
-- **Skill routing was the most expensive setup on the feature and the refactor**, with the same scores.
-- **My test had a flaw.** It compared whole records, so runs that added a field to keep a renamed profile linked to the app menu lost a point. I kept the scores as they are, because the rule was no changes after seeing results. I hadn't thought of that requirement myself: 5 of 8 runs handled it, spread across all setups.
-
-### v2: coding on a ~100k-line codebase
-
-Maybe those tasks were still too easy because the project is small. So I ran two more on buildbot, where finding the right code is the hard part: a REST endpoint that has to follow the project's conventions and stay fast on millions of builds, and a blamelist bug whose symptom shows in notifications but whose cause is in how the database links commits (one line removed by me, not caught by the project's 6,400+ unit tests). The [design was committed before any run](data/tasks-v8.md).
-
-| Mean cost per run | Opus only, blocked | Opus only, spontaneous | Skill-routed | Forced Haiku |
-| --- | --- | --- | --- | --- |
-| REST endpoint | $1.16 | $1.07 (-8%) | $1.17 (0%) | $0.93 (-20%) |
-| Far-off bug | $0.79 | $0.81 (+3%) | $0.65 (-17%) | $0.43 (-46%) |
-| **Both** | **$1.95** | **$1.88 (-4%)** | **$1.82 (-7%)** | **$1.36 (-30%)** |
-| Share spent on checking, after the first edit | 16-18% | 16-19% | 43-44% | 33-37% |
-| Hidden tests, endpoint, official (of 13) | 9, 9 | 9, 9 | 9, 13 | 13, 9 |
-| Hidden tests, endpoint, corrected test data (of 13) | 13, 13 | 13, 13 | 13, 13 | 13, 13 |
-| Hidden tests, bug (of 8) | 8, 8 | 8, 8 | 8, 8 | 8, 8 |
-
-- **A bigger codebase didn't separate the setups either.** All 16 runs ended with working code. All 8 bug runs made the same one-line fix at the real cause, and all 8 endpoint runs added a database index with a migration, which my own reference solution didn't do.
-- **The official endpoint scores don't reflect the code.** My test data marked builds as finished without a completion time, so runs that sensibly checked for one counted zero. I kept those scores, and added a corrected test as a separate score, written after seeing the first failure.
-- **Opus is doing real work in these results.** In one forced Haiku run, Opus's review fixed a problem in Haiku's code that failed type checking. Delegating setups spent over twice the share on checking.
-- **It cost far less than I guessed**, about $1 per run, because runs read only what they needed. My guess was $2-5.
-- **My bug report was partly wrong.** It described names missing from the blamelist, which the planted bug doesn't seem to cause. All 8 runs said they couldn't reproduce that part rather than claim it was fixed.
-
-So across five harder coding tasks, Opus plus Haiku was the cheapest setup, with no sign of worse code. That's not "Haiku is as good as Opus": every setup here has Opus reviewing and testing. The open question is how Haiku does with no Opus behind it.
-
-### v2: Haiku alone
-
-So I ran Haiku as the main model, with subagents blocked and no Opus anywhere, on the same five coding tasks and their [unchanged hidden tests](data/tasks-v9.md), plus the 85-page docs check, where the setups had actually differed.
-
-| Mean cost per run | Opus only, blocked | Opus plus Haiku (forced) | Haiku alone | Haiku alone vs Opus only |
-| --- | --- | --- | --- | --- |
-| Bug with a trap | $0.63 | $0.35 | **$0.02** | -97% |
-| Vague feature | $1.01 | $0.71 | **$0.06** | -94% |
-| Refactor | $0.77 | $0.74 | **$0.04** | -95% |
-| REST endpoint, ~100k lines | $1.16 | $0.93 | **$0.14** | -88% |
-| Far-off bug, ~100k lines | $0.79 | $0.43 | **$0.01** | -99% |
-
-On those coding tasks Haiku alone matched every other setup's hidden-test scores, and was also faster than Opus alone. The docs check is where it fell behind:
-
-| Docs check, 85 pages | Opus only, blocked | Opus only, spontaneous | Skill-routed | Opus plus Haiku (forced) | Haiku alone |
-| --- | --- | --- | --- | --- | --- |
-| Mean cost per run | $4.11 | $4.02 | $3.88 | $1.93 | **$1.93** |
-| Real errors found, of 92 (two runs) | 36, 38 | 39, 35 | 55, 70 | 58, 63 | **42, 41** |
-| Both runs combined | 49 | 43 | 77 | 72 | **54** |
-| Adding true claims checked later, outside that list | 36, 38 | 39, 35 | 56, 71 | 62, 66 | **52, 45** |
-| Claims confirmed false | 0, 0 | 0, 0 | 0, 0 | 0, 0 | **0, 1** |
-| Planted errors found, of 20 | 20, 20 | 20, 20 | 20, 20 | 20, 20 | 20, 20 |
-| Citations past the end of the file | 0%, 0% | 0%, 0% | 0%, 10% | 0%, 0% | **9%, 20%** |
-
-- **For coding tasks like these, the Opus part was most of the bill.** Haiku alone cost 1-12% of Opus alone, which beats Opus plus Haiku by far, and my tests saw no difference in correctness.
-- **On a big review job, Opus plus Haiku was clearly better:** the same cost as Haiku alone, with about 30% more real errors per run once later-checked claims are included (the list of 92 was built before Haiku alone ran, which favoured the others). Haiku's cost advantage also disappears, because its long prompts hit the 5x rate.
-- **Runs rarely make things up on doc checks.** Of roughly 1,000 claims across 18 runs, I confirmed one false claim, from Haiku alone. Limits are in [`data/results.md`](data/results.md).
-- **Haiku alone still found a bit more than Opus alone on that docs check**, at under half the price.
-- **What my tests don't score may matter most.** On the endpoint, all 8 runs with Opus added a database index for speed, and neither Haiku-alone run did. On the bug, all 8 runs with Opus said they couldn't reproduce part of the report, and neither Haiku-alone run said so. On the docs check, up to a fifth of Haiku's line citations don't exist. So it got the work right on these tasks but took less care, and its reports were less reliable.
-
-**What I'd do today:** on small, testable coding tasks, try Haiku alone and review the result yourself. Want more care, or doing a big review? Use Opus delegating to Haiku. This is 2 runs per setup, on tasks every setup could do. Haiku alone hasn't yet met a coding task it fails, so this doesn't show where its limit is.
-
-### v2: cost per error, and errors missed twice
-
-<p align="center">
-  <img src="charts/v2-quality-price.png" alt="Cost per real error. On the 85-page buildbot check: Opus alone $0.11, free Opus $0.11, skill-routed $0.06, Opus plus Haiku $0.03, Haiku alone $0.05. On the 80-page beets check: forced Opus $0.25, free Opus $0.19, skill-routed $0.14, Opus plus Haiku $0.05" width="800">
-</p>
-
-Two questions from a reader. **What does each real error cost?** And **does a setup keep missing the same errors?** If it does, whatever's on the list could decide the verdict.
-
-| Doc checks | Opus only | Opus, spontaneous | Skill-routed | Forced Haiku | Haiku alone |
-| --- | --- | --- | --- | --- | --- |
-| Cost per real error, 2-page check | $0.12 | $0.14 | $0.11 | **$0.04** | not run |
-| Cost per real error, 85-page check | $0.11 | $0.11 | $0.06 | **$0.03** | $0.05 |
-| Cost per real error, beets 80-page check | $0.25 | $0.19 | $0.14 | **$0.05** | not run |
-| Errors both runs missed, 85-page check (of 92) | 43 | 49 | 15 | 20 | 38 |
-| Errors both runs missed, beets check (of 61) | 17 | 25 | 26 | 22 | not run |
-
-- **Forced Haiku was the cheapest per error on every check**, even on beets, where forced Opus found the most. So the better choice depends on what a missed error costs you.
-- **Repeat misses aren't specific to Haiku.** Which setup misses the most changes with the codebase: Opus alone missed the most on buildbot and the fewest on beets.
-- **The list matters.** Only 12 of 92 and 13 of 61 errors were found by every run, while 14 and 8 were found by just one. Each list is built from what the runs themselves found, so it can't contain what they all missed.
-
-## How it works
-
-- **Three tiers.** `skills/model-router/SKILL.md` tells the orchestrator to default to Haiku for finding, listing and formatting, to use Sonnet for anything that reads code and makes a judgement, and to keep hard design or security reasoning on Opus itself. Tiny tasks stay inline. A failed Haiku result is retried once on Sonnet.
-- **Log, then verify.** Before every subagent call the orchestrator appends a line to `~/.claude/model-router/routing.log`. Afterwards, `scripts/verify_models.py` pairs every Agent call in `~/.claude/projects/**/*.jsonl` with its subagent transcript, flags any subagent that ran a different model than requested (`MISMATCH`) or switched mid-run (`FALLBACK`), and totals tokens and estimated cost per model.
-
-## The experiment
-
-Each task ran in a fresh clone of the project, headless (`claude -p`), with an Opus 5.5 orchestrator at effort medium:
-
-- **Opus only, forced (A):** the prompt starts with `no routing.`, so Opus does everything itself. From the beets module summaries on, the Agent tool was also blocked.
-- **Opus only, spontaneous (D):** the prompt is unchanged and subagents are allowed; only the Skill tool is blocked, so the installed router skill can't load itself.
-- **Skill-routed (B):** the prompt starts with `Use the model-router skill.`
-- **Forced Haiku (C):** the prompt starts with `Use the model-router skill. use haiku.`, so every subagent runs on Haiku.
-
-Cost is estimated from the token counts in the transcripts at API list prices (Haiku 5.5, Sonnet 5.5, Opus 5.5, including Haiku's 5x rate on prompts over 100K tokens), as a stand-in for subscription usage. Percentages are each setup's cost relative to forced Opus, computed from unrounded costs. Per-task numbers are in [`data/results.md`](data/results.md), prompts in [`data/tasks.md`](data/tasks.md), [`data/tasks-v2.md`](data/tasks-v2.md), [`data/tasks-v3.md`](data/tasks-v3.md) and [`data/tasks-v4.md`](data/tasks-v4.md), and for v2 in [`data/tasks-v5.md`](data/tasks-v5.md) to [`data/tasks-v9.md`](data/tasks-v9.md).
-
-**Reading the doc-check scores:** each setup ran twice, so a score like "7 and 8 of 9" is each run's count of the known doc problems it found (higher is better). "Combined" is the number of distinct problems the two runs found together.
-
-### Smaller codebase: my own Python project (~10k lines)
-
-#### Everyday tasks
-
-10 tasks: 3 searches, 5 code jobs, 1 explanation and 1 design question.
-
-| | Opus only, forced | Opus only, spontaneous | Skill-routed | Forced Haiku |
-| --- | --- | --- | --- | --- |
-| Tasks passed | 10/10 | 10/10 | 10/10 | 10/10 |
-| Estimated cost | $3.81 | $3.77 (-1%) | $4.34 (+14%) | $3.63 (-5%) |
-| Wall time | 776 s | 850 s (+10%) | 1186 s (+53%) | 1615 s (+108%) |
-| Subagents | 0 | 0 | 9 (3 Haiku, 6 Sonnet) | 14 Haiku |
-| Model mismatches | - | - | 0 | 0 |
-
-Spontaneous Opus did every task itself and matched forced Opus on cost and quality. Only one task came out cheaper in the skill-routed run (a mixed code job, by 17%). The orchestrator picked Haiku for the three lookup tasks, but the briefing and checking overhead still outweighed the cheaper tokens. Forced Haiku came out 5% cheaper overall: it lost on the small lookups and won on the bigger code jobs.
-
-#### Reading-heavy tasks
-
-5 tasks that should favour routing: inventory every function, map tests to modules, find every missing docstring, map imports, and check the docs against the code. Each arm ran twice. Answers were scored against ground truth computed from the source code, or, for the docs check, against a list of 9 real out-of-date doc claims.
-
-| | Opus only, forced | Opus only, spontaneous | Skill-routed | Forced Haiku |
-| --- | --- | --- | --- | --- |
-| Accuracy | all correct on the first four; docs check found 7 and 8 of 9 issues (8 combined) | one miscount in one run; docs check found 5 and 7 of 9 issues (7 combined) | the same miscount in both runs; docs check found 5 and 6 of 9 issues (9 combined) | one miscount in one run; docs check found 3 and 2 of 9 issues (4 combined) |
-| Estimated cost, mean per run | $1.80 | $1.50 (-16%) | $2.33 (+30%) | $1.79 (0%) |
-| Wall time, both runs | 662 s | 584 s (-12%) | 1222 s (+85%) | 1324 s (+100%) |
-| Runs that delegated | 0 of 10 | 0 of 10 | 10 of 10 (mostly Haiku) | 10 of 10 |
-
-Every skill-routed run delegated, mostly to Haiku, and every task cost more than doing it on Opus alone. Forced Opus mostly didn't read file by file: it wrote a short `ast` or grep script and answered from the output, which is cheaper than briefing any subagent. Forced Haiku broke even too, but its docs check was the weakest of any arm. Spontaneous Opus did the same as forced Opus, scripts included, in shorter sessions: 16% cheaper, with a slightly weaker docs check.
-
-### Larger codebase: rich (~22k lines)
-
-2 tasks on [rich](https://github.com/Textualize/rich) (76 modules, about 22,000 lines of hand-written code, 25 doc pages), chosen because a script can't answer them: summarise every module, and check every doc page's API claims against the code. Each arm ran twice.
-
-| | Opus only, forced | Opus only, spontaneous | Skill-routed | Forced Haiku |
-| --- | --- | --- | --- | --- |
-| Module summaries | all modules covered, ~3.5k words | all modules covered, ~3k words | all modules covered, ~5-6k words | all modules covered, ~6k words |
-| Doc issues found (of 12 verified) | 10 and 10 (10 combined) | 8 and 9 (11 combined) | 6 and 9 (10 combined) | 9 and 10 (11 combined) |
-| Estimated cost, mean per run | $2.38 | $2.06 (-14%) | $2.64 (+11%) | $1.41 (-41%) |
-| Wall time, both runs | 806 s | 742 s (-8%) | 655 s (-19%) | not comparable* |
-| Subagents | 0 | 0 | 19 (3 Haiku, 16 Sonnet) | 21 Haiku |
-
-\* One forced-Haiku run finished early, then kept its session open about 25 minutes on a timer Opus set in case an agent hung.
-
-Spontaneous Opus still worked alone, 14% cheaper than forced Opus with similar quality. With the skill, routing worked as designed: every skill-routed run split the reading across 4-5 parallel subagents and finished faster. It still cost 11% more overall: the summaries cost nearly twice as much as on Opus alone, while the docs check came out 22% cheaper. The orchestrator sent most batches to Sonnet rather than Haiku, because summarising or checking code needs comprehension, then checked their work itself. Forced Opus found a few more doc problems. Forced Haiku was the surprise here: 41% cheaper than forced Opus, with a docs check almost as thorough.
-
-### Largest codebase: beets (~52k lines)
-
-3 tasks on [beets](https://github.com/beetbox/beets) (167 modules, about 52,000 lines, far less famous than rich): summarise every module, check the 5 reference doc pages against the code, and check all 80 plugin doc pages against the code. All four setups, each run twice.
-
-| | Opus only, forced | Opus only, spontaneous | Skill-routed | Forced Haiku |
-| --- | --- | --- | --- | --- |
-| Module summaries | $1.43 | $1.00 (-30%) | $2.31 (+62%) | $0.79 (-45%) |
-| Reference docs check | $2.86 | $2.19 (-23%) | $2.09 (-27%) | $1.06 (-63%) |
-| Plugin docs check (80 pages) | $9.20 | $6.01 (-35%) | $3.95 (-57%) | $1.49 (-84%) |
-| **All three, mean per run** | **$13.49** | **$9.20 (-32%)** | **$8.34 (-38%)** | **$3.33 (-75%)** |
-| Reference doc issues found (of 35 verified) | 10 and 16 (17 combined) | 10 and 9 (12 combined) | 18 and 13 (23 combined) | 20 and 11 (24 combined) |
-| Plugin doc issues found (of 61 verified, re-checked*) | 41 and 33 (44 combined) | 27 and 35 (36 combined) | 30 and 28 (35 combined) | 30 and 30 (39 combined) |
-| Plugin docs check, wall time per run | ~15 min | ~9 min | ~3 min | ~4 min |
-| Subagents | 0 | 0 | 39, all Sonnet | 40, all Haiku |
-
-\* First scored against 51 issues (38 and 34, 24 and 29, 27 and 27, 26 and 29). A reader pointed out that about 24 single-run or borderline claims, mostly from a Haiku run, had never been verified, so every claim from all 8 runs was re-checked against the code (details in [`data/results.md`](data/results.md)). Haiku gained the most; the order didn't change.
-
-This is the first codebase where skill routing saved money. On the plugin docs, Opus alone had to read 80 pages in one long session; the delegated setups split them across 8 parallel subagents and finished in a quarter of the time. The cost was thoroughness: per run, both found roughly 10-30% fewer real problems than forced Opus. On the summaries and the reference docs, quality was level across the forced Opus and delegated setups.
-
-Spontaneous Opus still didn't delegate, even on 80 pages. It cost 32% less than forced Opus because its sessions were shorter, and it found less for the same reason: on the plugin docs, about as many issues as the delegated setups (36 combined, against 44), at four times forced Haiku's cost.
-
-Left to choose, the orchestrator sent every batch to Sonnet. Forcing Haiku is what produced the big savings, at 75% less than forced Opus overall.
-
-## Why the savings estimate was wrong
-
-The checker can also report a "saving vs forced Opus": it takes the skill-routed runs' tokens and asks what they would have cost if every token had been billed at Opus prices. On the everyday tasks (10 tasks, skill-routed run):
-
-- That skill-routed run's tokens cost **$4.34** at their real models' prices.
-- The same tokens billed at Opus prices would have cost **$7.69**, which suggests a **44% saving**.
-- But running the same 10 tasks on Opus alone cost **$3.81**. Routing actually cost **14% more**.
-
-The estimate assumes Opus would need the same tokens as the delegated workflow. It doesn't: on its own, Opus skips the briefs, the duplicated reading and the re-checking. The estimate overstated the saving on every set but one:
-
-| Task set | Checker's estimated saving | Real result vs forced Opus |
-| --- | --- | --- |
-| Everyday tasks, skill-routed | 44% | 14% more expensive |
-| Everyday tasks, forced Haiku | 68% | 5% cheaper |
-| Reading-heavy tasks, skill-routed | 52% | 30% more expensive |
-| Reading-heavy tasks, forced Haiku | 77% | break-even |
-| rich, skill-routed | 45% | 11% more expensive |
-| rich, forced Haiku | 84% | 41% cheaper |
-| beets, skill-routed | 34% | 38% cheaper |
-| beets, forced Haiku | 85% | 75% cheaper |
-
-Only a head-to-head comparison measures the real effect. (Spontaneous Opus used no subagents, so the checker has nothing to re-price for it.)
-
-## Why skill routing cost more on the smaller codebases
-
-Opus 5.5 is not cheaper per token: it costs 2x Sonnet 5.5 and 40x Haiku 5.5. On my project and on rich, the forced Opus runs were cheaper than the skill-routed ones because they used fewer tokens in total. Forced Haiku only got ahead because Haiku's tokens cost a fortieth of Opus's, enough to absorb the same overheads:
-
-- **No duplicated reading.** A subagent starts with an empty context and reads the files itself. Opus then reads its output and re-checks the important parts, so the same code is paid for on two models.
-- **No coordination overhead.** Loading the skill, writing a brief for each subagent and logging each decision all cost Opus tokens. On the rich module summaries, the coordinating Opus alone cost about as much as a whole forced Opus run ($0.83 and $0.58, against $0.88 and $0.50).
-- **Caching favours one long session.** Opus re-reads its own cached context cheaply ($0.20 per million tokens), while each new subagent has to build its own cache first, and cache writes cost 1.25x the input price.
-- **Opus took shortcuts**, like the scripts above.
-
-In some runs the cheaper models also used more tokens for their part of the work than Opus needed for the whole job: on the rich module summaries, the subagents wrote 30k and 52k output tokens, against 15-19k for an entire forced Opus run. My hypothesis is that Opus often solves these tasks with fewer total tokens, while delegation adds coordination and verification costs. The experiment supports this, but it doesn't separate the effect of model capability from workflow overhead.
-
-**Why forced Opus cost more than spontaneous Opus.** Both are Opus working alone on the same Claude Code version, yet forced Opus cost more on every task set and, on the 80-page beets check, found more (41 and 33 of 61 issues after the re-check, against 27 and 35; 44 against 36 combined). The transcripts show it put in more effort: every forced run produced more output, thinking included, than every spontaneous run on the same task (beets reference docs: 22-27k output tokens per run against 17-22k; plugin docs: 44-50k against 31-34k). On the plugin docs it worked one plugin at a time, reading each page and then that plugin's code, while one spontaneous run read 5-10 pages per command and thought about a third as much. Each extra turn also re-reads the whole context, so the extra effort costs more than its own tokens. The thinking itself is encrypted in the transcripts, so why it works harder is a guess. What every forced run had in common was the `no routing.` instruction with the router skill visible in its tool list (most forced runs could still have spawned subagents; only the later beets runs blocked them). Being told not to delegate seems to make Opus plan to cover everything itself. In a follow-up, the instruction without the skill visible, and blocking subagents without the instruction, both landed in between. With 2-4 runs per setup, the size of the effect is uncertain: forced Opus on its own found anywhere from 10 to 16 of 35 issues on the same task (details in [`data/results.md`](data/results.md)).
-
-**Why it paid on beets.** On the 80-page plugin docs check, Opus alone ran one session of about 150 turns and re-read roughly 32 million cached tokens, so even cheap cache reads added up to $9 per run. The delegated runs split the pages across 8 subagents with small contexts each; the coordinating Opus cost about $1. Once the job is that big, the overhead of briefing and checking is small next to the reading it saves.
-
-## What still works
-
-Routing is mechanically sound: across all runs, every subagent ran the model it was asked for (0 mismatches, 0 fallbacks), and the checker can prove it. That check is worth having on its own, because a single setting (`CLAUDE_CODE_SUBAGENT_MODEL`) silently overrides every subagent's model.
-
-Routing choices were not stable, though. With identical prompts, routes often changed between runs (Haiku in one run, Sonnet in the next), and the skill-routed arm's total cost varied by up to 68% between two runs of the same task set.
-
-## Limitations
-
-- 30 tasks on four codebases is a small sample, with mostly 2 runs per setup.
-- The smallest codebase is a private throwaway project of mine, so its results can't be rerun by others, and its prompts and hidden tests stay private (hashes are public). The rich, beets and buildbot reading sets can be rerun. Coding task 57 uses a planted bug, one line removed.
-- Claude Opus designed the coding tasks after seeing that Haiku did well, and wrote their hidden tests. Committing them before the runs reduces the risk of bias but doesn't remove it. Two hidden tests penalised careful runs: both official scores are kept, with a corrected score labelled as added afterwards on one of them. One prompt described a symptom the planted bug doesn't seem to cause.
-- Haiku alone ran after the other setups, not interleaved with them, though on the same Claude Code version. It wasn't run on most reading tasks.
-- False positives on the v2 doc checks are a floor: one confirmed false claim among about 1,000, judged by Claude Opus knowing which setup wrote each report, without re-reading claims that closely matched a verified error.
-- Costs use API list prices as a proxy for subscription usage; Anthropic doesn't publish the exact subscription weighting.
-- On the everyday task set, each arm ran once; the other sets ran each arm twice.
-- Opus alone varies a lot from run to run (forced Opus found 10 to 16 of 35 issues on the same task), so the gap between forced and spontaneous Opus is consistent in direction but uncertain in size.
-- Doc-check scores count issues verified against the code by Claude Opus in a separate session, not by hand. On the smaller doc checks, borderline claims (mostly from the Haiku runs) are left out; the 80-page beets check was re-scored with every claim from every run verified, borderline ones counted, and about 20 unverifiable claims left out.
-- rich is a famous library, and Opus said part of one summary came from its own knowledge of it. That favours the forced Opus arm. beets is much less famous, though one forced Opus run still named two module paths that no longer exist, which suggests it was working from memory.
+**Takeaway: cheaper tokens don't necessarily mean cheaper tasks, and the most expensive model isn't always the one doing the useful work. Measure the whole workflow.**
 
 ## Setup
 
-Requires Claude Code 2.1.305 or later (earlier versions could run the wrong model after a fallback), Python 3.8+, and `CLAUDE_CODE_SUBAGENT_MODEL` unset.
+Requires Claude Code 2.1.305 or later, Python 3.8+, and `CLAUDE_CODE_SUBAGENT_MODEL` unset.
 
 ```bash
 ln -s ~/Documents/Coding/claude-model-router/skills/model-router ~/.claude/skills/model-router
 python3 scripts/verify_models.py --since 2026-10-25
 ```
 
-Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.` to turn it off.
-
-To rerun a benchmark task: `scripts/run_bench.sh <task> <A|B|C|D|F> [tag]` runs one row of `data/tasks.md` headless in a fresh clone of the bench project. Arm A also blocks the Agent tool, so a delegation rule in a global `CLAUDE.md` can't leak subagents into the forced Opus runs; arm D blocks the Skill tool instead, so the installed router skill can't turn a spontaneous run into a skill-routed one. Set `TASKS=data/tasks-v2.md`, `TASKS=data/tasks-v3.md` (with `SRC` pointing at a rich checkout), `TASKS=data/tasks-v4.md` (with `SRC` pointing at a beets checkout) or `TASKS=data/tasks-v5.md` (with `SRC` pointing at a buildbot checkout) for the other task sets. Arm F (the v2 baseline) blocks both tools and adds no prefix. Arm H (Haiku alone) is F with Haiku as the main model. `TASKS=data/tasks-v6.md` to `tasks-v9.md` are the coding tasks; the small project's real prompts are private.
+Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.` to turn it off. Per-run numbers are in [`data/results.md`](data/results.md).
 
 ## Credits
 

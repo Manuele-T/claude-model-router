@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A Claude Code skill experiment: Opus orchestrates and routes subagents to Haiku/Sonnet/Opus (`skills/model-router/SKILL.md`), and a standalone Python checker (`scripts/verify_models.py`) reads Claude Code's own transcripts to confirm which model actually ran and to total tokens per model. `BUILD_PLAN.md` (local only, gitignored) is the original plan for phases, the 10-task benchmark, and troubleshooting; read it before changing scope if it exists. It assumes the repo lives at `~/claude-model-router`; it actually lives at `~/Documents/Coding/claude-model-router`. Results and conclusions live in `README.md` and `data/results.md`.
+A Claude Code skill experiment: Opus orchestrates and routes subagents to Haiku/Sonnet/Opus (`skills/model-router/SKILL.md`), and a standalone Python checker (`scripts/verify_models.py`) reads Claude Code's own transcripts to confirm which model actually ran and to total tokens per model. `BUILD_PLAN.md` (local only, gitignored) is the original plan for phases, the 10-task benchmark, and troubleshooting; read it before changing scope if it exists. It assumes the repo lives at `~/claude-model-router`; it actually lives at `~/Documents/Coding/claude-model-router`. `README.md` is a short recap; results and discussion live in `docs/v1-results.md`, `docs/v2-results.md` and `data/results.md`.
 
 ## Commands
 
