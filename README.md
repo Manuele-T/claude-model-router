@@ -104,7 +104,11 @@ Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per se
 ### v2: writing code
 
 <p align="center">
-  <img src="charts/v2-coding.png" alt="Writing code: on 2 simple tasks, costs were $0.89 for Opus alone, $1.04 spontaneous Opus, $1.05 skill-routed and $0.70 forced Haiku; on 3 harder tasks $2.41, $2.61, $2.89, $1.80 and $0.11 for Haiku alone; on 2 harder tasks on about 100k lines $1.95, $1.88, $1.82, $1.36 and $0.15 for Haiku alone. Every setup produced working code; hidden-test points lost came from flaws in the tests" width="800">
+  <img src="charts/v2-coding-small.png" alt="Writing code on the small project: on 2 simple tasks, costs were $0.89 for Opus alone, $1.04 free Opus, $1.05 skill-routed and $0.70 Opus plus Haiku, all passing 13 of 13 hidden tests; on 3 harder tasks, $2.41, $2.61, $2.89, $1.80 and $0.11 for Haiku alone, with the lost points coming from a flaw in my test" width="800">
+</p>
+
+<p align="center">
+  <img src="charts/v2-coding-large.png" alt="Writing code on buildbot: 2 harder tasks cost $1.95 for Opus alone, $1.88 free Opus, $1.82 skill-routed, $1.36 Opus plus Haiku and $0.15 Haiku alone. All scored 21 of 21 on corrected tests. All Opus-led runs added a speed index and flagged the odd symptom; neither Haiku-alone run did" width="800">
 </p>
 
 "But I only use Claude for coding." So v2 also tests tasks that write code, on the small codebase: a well-specified feature touching 7-9 files, and a bug hunt from a user's symptom (one bug planted before any run, not caught by the existing tests). Each was scored by a hidden test file written before any run, plus the whole unit suite. Each setup ran twice ([`data/tasks-v6.md`](data/tasks-v6.md)).
@@ -197,6 +201,10 @@ On those coding tasks Haiku alone matched every other setup's hidden-test scores
 **What I'd do today:** on small, testable coding tasks, try Haiku alone and review the result yourself. Want more care, or doing a big review? Use Opus delegating to Haiku. This is 2 runs per setup, on tasks every setup could do. Haiku alone hasn't yet met a coding task it fails, so this doesn't show where its limit is.
 
 ### v2: cost per error, and errors missed twice
+
+<p align="center">
+  <img src="charts/v2-quality-price.png" alt="Cost per real error. On the 85-page buildbot check: Opus alone $0.11, free Opus $0.11, skill-routed $0.06, Opus plus Haiku $0.03, Haiku alone $0.05. On the 80-page beets check: forced Opus $0.25, free Opus $0.19, skill-routed $0.14, Opus plus Haiku $0.05" width="800">
+</p>
 
 Two questions from a reader. **What does each real error cost?** And **does a setup keep missing the same errors?** If it does, whatever's on the list could decide the verdict.
 

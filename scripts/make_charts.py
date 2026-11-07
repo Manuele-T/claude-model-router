@@ -53,11 +53,11 @@ def esc(s):
     return html.escape(s)
 
 
-def section(title, note, rows, base="forced Opus"):
+def section(title, note, rows, base="forced Opus", cost_label="Est. API cost"):
     top = max(r["cost"] for r in rows)
     out = [f"<h2>{esc(title)} <span>· {esc(note)}</span></h2>",
            '<div class="thead"><div>Run</div><div>Models used</div><div>Quality (higher is better)</div>'
-           f'<div>Est. API cost</div><div>vs {esc(base)}</div></div>']
+           f'<div>{esc(cost_label)}</div><div>vs {esc(base)}</div></div>']
     for r in rows:
         width = int(440 * r["cost"] / top)
         small = f"<small>{esc(r['small'])}</small>" if r.get("small") else ""
@@ -77,8 +77,8 @@ def section(title, note, rows, base="forced Opus"):
     return "\n".join(out)
 
 
-def page(title, subtitle, sections, explanation, checker, foot_note):
-    expl = ('<div class="expl"><h3>What the quality column measures</h3>'
+def page(title, subtitle, sections, explanation, checker, foot_note, expl_title="What the quality column measures"):
+    expl = (f'<div class="expl"><h3>{esc(expl_title)}</h3>'
             + "".join(f"<p>{x}</p>" for x in explanation) + "</div>")
     lines = "".join(
         f'<div class="l"><div>{esc(a)}</div><div>estimated {esc(b)} saved</div><div>→</div><b>{esc(c)}</b></div>'
@@ -93,6 +93,14 @@ def page(title, subtitle, sections, explanation, checker, foot_note):
 OPUS = {"name": "Opus only, forced", "models": "Opus, no subagents", "small": "told not to delegate", "kind": "opus"}
 NAT = {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "small": "could delegate, never did", "kind": "natural"}
 LEGEND = "Forced = Opus told no routing · Spontaneous = plain Claude Code, no skill (it never delegated) · Skill-routed = the skill picks Opus's helpers · Forced Haiku = every helper on Haiku · API list prices as a proxy for subscription usage"
+
+V2_OPUS = {"name": "Opus alone", "models": "Opus, no subagents", "small": "subagents blocked", "kind": "opus"}
+V2_FREE = {"name": "Free Opus", "models": "Opus, no subagents", "small": "could delegate, never did", "kind": "natural"}
+V2_SKILL = {"name": "Skill-routed", "models": "Opus + Sonnet and Haiku", "small": "my skill picks the helpers", "kind": "routed"}
+V2_OH = {"name": "Opus plus Haiku", "models": "Opus + Haiku", "small": "Opus plans and reviews", "kind": "haiku"}
+V2_H = {"name": "Haiku alone", "models": "Haiku, no Opus", "kind": "solo"}
+V2_KEY = "Costs are API list prices, a proxy for subscription usage · Mostly 2 runs per setup, so treat these as strong hints"
+EXPL = "What the tasks and numbers mean"
 
 CHARTS = {
     "smaller-codebase": (page(
@@ -221,86 +229,104 @@ CHARTS = {
         [],
         "Two runs per setup · Haiku alone ran later, on the same Claude Code version · API list prices as a proxy for subscription usage"), 4000),
     "v2-reading": (page(
-        "Delegating to cheaper models: reading a ~100k-line codebase",
-        "buildbot (open source), 408 modules · estimated API cost",
-        [section("All three tasks", "module summaries + 2 docs checks, mean per run", [
-            {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 8.98,
-             "quality": ["Summaries: all 400 modules", "2-page check: 10 and 17 of 42 (22 combined)"]},
-            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "small": "could delegate, never did",
-             "kind": "natural", "cost": 8.26, "delta": "−8%",
-             "quality": ["Summaries: all 400 modules", "2-page check: 9 and 9 of 42 (12 combined)"]},
-            {"name": "Skill-routed", "models": "Opus + Sonnet", "small": "4-10 subagents per task", "kind": "routed",
-             "cost": 10.19, "delta": "+13%",
-             "quality": ["Summaries: all 400 modules", "2-page check: 17 and 21 of 42 (26 combined)"]},
-            {"name": "Forced Haiku", "models": "Opus + Haiku", "small": "4-12 subagents per task", "kind": "haiku",
-             "cost": 4.44, "delta": "−51%",
-             "quality": ["Summaries: all 400 modules", "2-page check: 20 and 23 of 42 (28 combined)"]},
+        "Reading a ~100k-line codebase",
+        "buildbot (open source), v2 · estimated API cost per run",
+        [section("All three reading tasks", "summaries + 2 doc checks, mean of 2-3 runs", [
+            {**V2_OPUS, "cost": 8.98,
+             "quality": ["Summaries: all 400 modules", "2-page doc check: 10 and 17 of 42 (22 combined)"]},
+            {**V2_FREE, "cost": 8.26, "delta": "−8%",
+             "quality": ["Summaries: all 400 modules", "2-page doc check: 9 and 9 of 42 (12 combined)"]},
+            {**V2_SKILL, "models": "Opus + Sonnet", "small": "4-10 subagents per task", "cost": 10.19, "delta": "+13%",
+             "quality": ["Summaries: all 400 modules", "2-page doc check: 17 and 21 of 42 (26 combined)"]},
+            {**V2_OH, "small": "4-12 subagents per task", "cost": 4.44, "delta": "−51%",
+             "quality": ["Summaries: all 400 modules", "2-page doc check: 20 and 23 of 42 (28 combined)"]},
          ], base="Opus alone"),
-         section("Biggest job: docs check", "85 doc pages, mean of 2 runs", [
-            {"name": "Opus only, blocked", "models": "Opus, no subagents", "small": "~7 min per run", "kind": "opus",
-             "cost": 4.11, "quality": ["36 and 38 of 92 (49 combined)"]},
-            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "small": "~9 min per run", "kind": "natural",
-             "cost": 4.02, "delta": "−2%", "quality": ["39 and 35 of 92 (43 combined)"]},
-            {"name": "Skill-routed", "models": "Opus + Sonnet", "small": "~4.5 min per run", "kind": "routed",
-             "cost": 3.88, "delta": "−5%", "quality": ["55 and 70 of 92 (77 combined)"]},
-            {"name": "Forced Haiku", "models": "Opus + Haiku", "small": "~6.5 min per run", "kind": "haiku",
-             "cost": 1.93, "delta": "−53%", "quality": ["58 and 63 of 92 (72 combined)"]},
-            {"name": "Haiku alone", "models": "Haiku, no Opus", "small": "~12 min per run", "kind": "solo",
-             "cost": 1.93, "delta": "−53%", "quality": ["42 and 41 of 92 (54 combined)"]},
+         section("Biggest job: 85-page doc check", "mean of 2 runs", [
+            {**V2_OPUS, "small": "~7 min per run", "cost": 4.11, "quality": ["36 and 38 of 92 (49 combined)"]},
+            {**V2_FREE, "small": "~9 min per run", "cost": 4.02, "delta": "−2%", "quality": ["39 and 35 of 92 (43 combined)"]},
+            {**V2_SKILL, "models": "Opus + Sonnet", "small": "~4.5 min per run", "cost": 3.88, "delta": "−5%",
+             "quality": ["55 and 70 of 92 (77 combined)"]},
+            {**V2_OH, "small": "~6.5 min per run", "cost": 1.93, "delta": "−53%", "quality": ["58 and 63 of 92 (72 combined)"]},
+            {**V2_H, "small": "~12 min per run", "cost": 1.93, "delta": "−53%", "quality": ["42 and 41 of 92 (54 combined)"]},
          ], base="Opus alone")],
-        ["<b>Summaries:</b> one paragraph per module, saying what it does and what it works with. Scored on coverage. "
-         "83-98% of named links were backed by a real import, with no clear gap between setups.",
-         "<b>Docs checks:</b> find where the docs disagree with the code. 30 errors were planted first, and every run found them all. "
-         "The scores are real errors on lists verified against the code by Claude Opus, built from the runs' own findings, so \"of 92\" isn't true recall. "
-         "<b>Combined</b> = distinct issues found by the two runs together."],
+        ["<b>Summaries:</b> read about 400 code files (a “module” is one source code file) and write a short paragraph on what each does and what it works with. "
+         "Every run covered all 400. 83-98% of the links they named matched a real import, with no clear gap between setups.",
+         "<b>Doc check:</b> read buildbot's documentation pages and list where they disagree with the code, such as a wrong default value. There's a 2-page check and an 85-page check.",
+         "<b>“36 and 38 of 92”:</b> each setup ran twice. Its first run found 36 and its second found 38 of the 92 real errors on the list. Higher is better. <b>Combined</b> = different errors found across both runs.",
+         "<b>The list:</b> real errors the runs reported, each confirmed against the code by Claude Opus. It can't include errors every run missed, so 92 isn't every error in the docs. "
+         "30 errors I planted were also found by every run, so they aren't scored here."],
         [("Skill-routed", "32-39%", "5% cheaper to 32% more expensive"),
-         ("Forced Haiku", "82-88%", "actually 46-53% cheaper")],
-        "Mean of 2-3 runs · Haiku alone ran later, and only on the 85-page check · API list prices as a proxy for subscription usage"), 4300),
-    "v2-coding": (page(
-        "Delegating to cheaper models: writing code",
-        "7 coding tasks, 2 runs per setup · estimated API cost per task group",
-        [section("2 simple tasks, small project", "a clear feature + a planted bug", [
-            {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 0.89,
-             "quality": ["Hidden tests: 13 of 13, both runs"]},
-            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "kind": "natural", "cost": 1.04,
-             "delta": "+17%", "quality": ["Hidden tests: 13 of 13, both runs"]},
-            {"name": "Skill-routed", "models": "Opus + Sonnet or Haiku", "kind": "routed", "cost": 1.05, "delta": "+18%",
-             "quality": ["Hidden tests: 13 of 13, both runs"]},
-            {"name": "Forced Haiku", "models": "Opus + Haiku", "kind": "haiku", "cost": 0.70, "delta": "−21%",
-             "quality": ["Hidden tests: 13 of 13, both runs"]},
+         ("Opus plus Haiku", "82-88%", "actually 46-53% cheaper"),
+         ("Haiku alone, 85-page check", "81%", "actually 53% cheaper")],
+        V2_KEY + " · Haiku alone ran later, and only on the 85-page check", EXPL), 4620),
+    "v2-coding-small": (page(
+        "Writing code on a small project",
+        "My own Python project, ~10k lines, v2 · estimated API cost for each group of tasks",
+        [section("2 simple tasks", "a clearly specified feature + a planted bug, mean of 2 runs", [
+            {**V2_OPUS, "cost": 0.89, "quality": ["Hidden tests: 13 and 13 of 13"]},
+            {**V2_FREE, "cost": 1.04, "delta": "+17%", "quality": ["Hidden tests: 13 and 13 of 13"]},
+            {**V2_SKILL, "cost": 1.05, "delta": "+18%", "quality": ["Hidden tests: 13 and 13 of 13"]},
+            {**V2_OH, "cost": 0.70, "delta": "−21%", "quality": ["Hidden tests: 13 and 13 of 13"]},
          ], base="Opus alone"),
-         section("3 harder tasks, small project", "a bug with a trap, a vague feature, a refactor", [
-            {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 2.41,
-             "quality": ["Hidden tests: 43 and 42 of 43"]},
-            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "kind": "natural", "cost": 2.61,
-             "delta": "+8%", "quality": ["Hidden tests: 43 and 42 of 43"]},
-            {"name": "Skill-routed", "models": "Opus + Sonnet and Haiku", "kind": "routed", "cost": 2.89, "delta": "+20%",
-             "quality": ["Hidden tests: 43 and 42 of 43"]},
-            {"name": "Forced Haiku", "models": "Opus + Haiku", "kind": "haiku", "cost": 1.80, "delta": "−25%",
-             "quality": ["Hidden tests: 43 and 42 of 43"]},
-            {"name": "Haiku alone", "models": "Haiku, no Opus", "kind": "solo", "cost": 0.11, "delta": "−95%",
-             "quality": ["Hidden tests: 43 and 43 of 43"]},
-         ], base="Opus alone"),
-         section("2 harder tasks, ~100k lines", "a REST endpoint, a bug far from its symptom", [
-            {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 1.95,
-             "quality": ["Official tests: 17 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged symptom: 2 of 2"]},
-            {"name": "Opus only, spontaneous", "models": "Opus, no subagents", "kind": "natural", "cost": 1.88, "delta": "−4%",
-             "quality": ["Official tests: 17 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged symptom: 2 of 2"]},
-            {"name": "Skill-routed", "models": "Opus + Sonnet and Haiku", "kind": "routed", "cost": 1.82, "delta": "−7%",
-             "quality": ["Official tests: 17 and 21 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged symptom: 2 of 2"]},
-            {"name": "Forced Haiku", "models": "Opus + Haiku", "kind": "haiku", "cost": 1.36, "delta": "−30%",
-             "quality": ["Official tests: 21 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged symptom: 2 of 2"]},
-            {"name": "Haiku alone", "models": "Haiku, no Opus", "kind": "solo", "cost": 0.15, "delta": "−93%",
-             "quality": ["Official tests: 17 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 0 of 2", "Flagged symptom: 0 of 2"]},
+         section("3 harder tasks", "a bug with a trap, a vague feature, a refactor, mean of 2 runs", [
+            {**V2_OPUS, "cost": 2.41, "quality": ["Hidden tests: 43 and 42 of 43"]},
+            {**V2_FREE, "cost": 2.61, "delta": "+8%", "quality": ["Hidden tests: 43 and 42 of 43"]},
+            {**V2_SKILL, "cost": 2.89, "delta": "+20%", "quality": ["Hidden tests: 43 and 42 of 43"]},
+            {**V2_OH, "cost": 1.80, "delta": "−25%", "quality": ["Hidden tests: 43 and 42 of 43"]},
+            {**V2_H, "cost": 0.11, "delta": "−95%", "quality": ["Hidden tests: 43 and 43 of 43"]},
          ], base="Opus alone")],
-        ["<b>Hidden tests:</b> written before the runs and copied in afterwards, so no run could see them. Each run's two scores are shown. "
-         "The whole unit suite also passed in every run, once a rare flaky test was re-run.",
-         "<b>Lost points are my test flaws, not bugs:</b> the 42s are runs that added a useful field my test didn't expect. The official 17s are runs that "
-         "sensibly required a completion time my test data left out. The corrected test fixes only that, and was written after seeing the first failure.",
-         "<b>Speed index and flagged symptom</b> aren't test scores. Runs were asked for an endpoint fast on millions of builds, and whether they added a database index "
-         "comes from reading the code. The bug report also described a symptom the bug doesn't seem to cause, and whether a run said so comes from reading its report."],
+        ["<b>Clear feature:</b> add an optional description to app profiles, following exact rules. <b>Planted bug:</b> from a user's report, find and fix a bug I added to the code.",
+         "<b>Bug with a trap:</b> fix a real bug where apps set to start at login didn't start properly, and where the obvious fix fails. <b>Vague feature:</b> add a command to rename a profile, with one rule: whatever worked under the old name must keep working. <b>Refactor:</b> split a ~700-line file into smaller ones without changing behaviour.",
+         "<b>“43 and 42 of 43”:</b> each setup ran twice. Its first run passed 43 and its second passed 42 of the 43 hidden tests. Higher is better. Hidden tests were written before the runs and added afterwards, so no run could see them. The project's own tests also passed in every run, once a rare flaky test was re-run.",
+         "<b>The lost points are a flaw in my test, not bugs:</b> those runs added a useful extra field that my test didn't expect."],
+        [("Simple, skill-routed", "32%", "actually cost 18% more"),
+         ("Simple, Opus plus Haiku", "65%", "actually 21% cheaper"),
+         ("Harder, skill-routed", "32%", "actually cost 20% more"),
+         ("Harder, Opus plus Haiku", "66%", "actually 25% cheaper"),
+         ("Harder, Haiku alone", "96%", "actually 95% cheaper")],
+        V2_KEY + " · Haiku alone ran later, and not on the simple tasks", EXPL), 4620),
+    "v2-coding-large": (page(
+        "Writing code on a ~100k-line codebase",
+        "buildbot (open source), v2 · estimated API cost for both tasks, mean of 2 runs",
+        [section("2 harder tasks", "a REST endpoint + a bug far from its symptom", [
+            {**V2_OPUS, "cost": 1.95, "quality": ["Official tests: 17 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged the odd symptom: 2 of 2"]},
+            {**V2_FREE, "cost": 1.88, "delta": "−4%", "quality": ["Official tests: 17 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged the odd symptom: 2 of 2"]},
+            {**V2_SKILL, "cost": 1.82, "delta": "−7%", "quality": ["Official tests: 17 and 21 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged the odd symptom: 2 of 2"]},
+            {**V2_OH, "cost": 1.36, "delta": "−30%", "quality": ["Official tests: 21 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged the odd symptom: 2 of 2"]},
+            {**V2_H, "cost": 0.15, "delta": "−93%", "quality": ["Official tests: 17 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 0 of 2", "Flagged the odd symptom: 0 of 2"]},
+         ], base="Opus alone")],
+        ["<b>REST endpoint:</b> add a web API address returning how many of a builder's builds passed, failed and so on, staying fast with millions of builds. "
+         "<b>Far-off bug:</b> notifications blamed the wrong people, and the cause was elsewhere, in buildbot's database code. I planted this bug, and buildbot's 6,400+ existing tests don't catch it.",
+         "<b>“17 and 17 of 21”:</b> each setup ran twice, and each run's hidden tests passed are shown. Higher is better. Hidden tests were written before the runs. Buildbot's own tests also passed in every run.",
+         "<b>Official vs corrected:</b> my test data wrongly left out a completion time, so careful runs lost 4 points. The official scores stand. The corrected test fixes only that, and was written after seeing the first failure.",
+         "<b>Speed index</b> (endpoint task): did the run add a database index? <b>Flagged the odd symptom</b> (bug task): the report described a symptom the bug doesn't seem to cause, so did the run say it couldn't reproduce it? "
+         "Tests don't score either one: they come from reading the runs' code and reports. 2 of 2 means both runs did it."],
+        [("Skill-routed", "38%", "actually 7% cheaper"),
+         ("Opus plus Haiku", "67%", "actually 30% cheaper"),
+         ("Haiku alone", "93%", "actually 93% cheaper")],
+        V2_KEY + " · Haiku alone ran later", EXPL), 3920),
+    "v2-quality-price": (page(
+        "Quality vs price: what does each real error cost?",
+        "v2, doc checks on two codebases · estimated API cost per real error found",
+        [section("85-page doc check", "buildbot, ~100k lines", [
+            {**V2_OPUS, "cost": 0.11, "quality": ["Found 36 and 38 of 92", "Both runs missed 43", "False claims: 0"]},
+            {**V2_FREE, "cost": 0.11, "delta": "−2%", "quality": ["Found 39 and 35 of 92", "Both runs missed 49", "False claims: 0"]},
+            {**V2_SKILL, "models": "Opus + Sonnet", "cost": 0.06, "delta": "−44%", "quality": ["Found 55 and 70 of 92", "Both runs missed 15", "False claims: 0"]},
+            {**V2_OH, "cost": 0.03, "delta": "−71%", "quality": ["Found 58 and 63 of 92", "Both runs missed 20", "False claims: 0"]},
+            {**V2_H, "small": "up to 20% of line citations don't exist", "cost": 0.05, "delta": "−58%", "quality": ["Found 42 and 41 of 92", "Both runs missed 38", "False claims: 1"]},
+         ], base="Opus alone", cost_label="Cost per real error"),
+         section("80-page doc check", "beets, ~52k lines, v1 runs re-scored", [
+            {"name": "Forced Opus", "models": "Opus, no subagents", "small": "told not to delegate", "kind": "opus", "cost": 0.25, "quality": ["Found 41 and 33 of 61", "Both runs missed 17"]},
+            {**V2_FREE, "cost": 0.19, "delta": "−22%", "quality": ["Found 27 and 35 of 61", "Both runs missed 25"]},
+            {**V2_SKILL, "models": "Opus + Sonnet", "cost": 0.14, "delta": "−45%", "quality": ["Found 30 and 28 of 61", "Both runs missed 26"]},
+            {**V2_OH, "cost": 0.05, "delta": "−80%", "quality": ["Found 30 and 30 of 61", "Both runs missed 22"]},
+         ], base="forced Opus", cost_label="Cost per real error")],
+        ["<b>Doc check:</b> read a project's documentation pages and list where they disagree with the code, such as a wrong default value.",
+         "<b>Cost per real error:</b> a setup's mean cost per run, divided by the real errors it found per run. Lower is better, but it treats a typo and a serious error the same, and a cheap setup can win while finding fewer errors.",
+         "<b>“36 and 38 of 92”:</b> each setup ran twice. Its first run found 36 and its second found 38 of the 92 real errors on the list. Higher is better. The list holds errors the runs reported, each confirmed against the code by Claude Opus, so it can't include errors every run missed.",
+         "<b>Both runs missed:</b> errors on the list that neither of the setup's two runs found. Lower is better. <b>False claims:</b> errors a run reported that I confirmed were wrong. This is a minimum, judged by Claude Opus knowing which setup wrote each report, and not counted on beets."],
         [],
-        "Sum of each task's mean cost · Haiku alone ran later, and not on the simple tasks · API list prices as a proxy for subscription usage"), 5400),
+        V2_KEY, EXPL), 4020),
 }
 
 
