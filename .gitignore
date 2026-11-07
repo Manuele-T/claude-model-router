@@ -40,3 +40,9 @@ venv/
 # Private planning notes
 BUILD_PLAN.md
 PLAN_V2.md
+
+# Draft social media posts
+posts/
+
+# Local session handover notes
+recap/
