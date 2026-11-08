@@ -727,3 +727,9 @@ Scored as for H: Claude Opus read each report against the list of 92 (`data/grou
 - **Citations are r2's weak point:** 32% of its line numbers point past the end of the file, the worst of any run.
 
 **What Part 6 shows.** On the five coding tasks, Sonnet alone got the same hidden-test scores as every other setup, at 30% of Opus alone's cost and 5 times Haiku alone's. On care it falls between the two: it added the index both times, like Opus, but explained a symptom it couldn't have reproduced instead of flagging it, like Haiku. On the docs check its two runs bracket the range, from Opus alone's level to Opus plus Haiku's, at a cost between them, with unreliable line numbers in one run. Two runs per task, run after every other setup.
+
+## What I'm working on next
+
+I wanted a skill where Opus picks the best setup for each task, including Haiku with no Opus at all. So far, I was able to see that the skill can definitely spawn a Haiku subagent to do the job, but cannot completely switch the session to Haiku, at least on Claude Code 2.1.317.
+
+I'm working on different possibilities. A script might be a solution: it would pick the setup first and then start a new session on Haiku, so the task runs entirely on Haiku. I'm still checking whether it's feasible and acceptable. For the moment, I'm working on having the skill check the best way to do the task: if Opus plus Haiku is the best option, it goes ahead. If not, it tells you to switch to Haiku manually and gives you the prompt.
