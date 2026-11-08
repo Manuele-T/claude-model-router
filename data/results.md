@@ -682,3 +682,48 @@ A reader asked how the issue lists were built, whether Haiku keeps missing the s
 - **Repeat misses aren't specific to Haiku.** Opus alone had more than Haiku alone on 43, and forced Opus had the fewest on 33. The setups miss different things, which supports the reader's concern that the list shapes the verdict.
 
 **Limits.** Two runs per setup is the minimum for calling anything a repeat, and two runs agreeing could be chance. Cost per error rewards finding cheap errors and hides total coverage: on 33, forced Opus cost five times as much per error as forced Haiku, but found the most. Grouping claims into issues is a judgement call by Claude Opus. Independent answer keys, such as real doc fixes from a project's history, would test this better.
+
+## v2, Part 6: Sonnet alone (setup S; tasks 53-57 and 43; 2026-11-07)
+
+Design in `data/tasks-v10.md` (written before the runs, not committed before them). S is arm F with `--model sonnet`: no prompt prefix, Agent and Skill tools blocked, effort medium, so no Opus is involved. Same tasks, sources, hidden tests and real-error list as setup H, run twice each on Claude Code 2.1.317, after every other setup rather than interleaved. Mismatches 0, fallbacks 0, no subagents. All 12 runs together cost $9.03 at API prices.
+
+### Coding tasks (10 runs, $2.62 in total)
+
+| Task | S r1 / r2 $ | S mean | F mean | C mean | H mean | S vs F | Hidden tests r1 / r2 | Wall min r1 / r2 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 53 Domain trap | 0.19 / 0.40 | **0.30** | 0.63 | 0.35 | 0.02 | -52% | 9 / 9 of 9 | 0.8 / 7.8 |
+| 54 Vague feature | 0.23 / 0.22 | **0.23** | 1.01 | 0.71 | 0.06 | -78% | 12 / 12 of 12 | 1.4 / 1.2 |
+| 55 Refactor | 0.22 / 0.24 | **0.23** | 0.77 | 0.74 | 0.04 | -70% | 22 / 22 of 22 | 1.3 / 1.6 |
+| 56 Endpoint | 0.45 / 0.45 | **0.45** | 1.16 | 0.93 | 0.14 | -61% | official 13 / 13, corrected 13 / 13 of 13 | 3.3 / 2.4 |
+| 57 Far-off bug | 0.09 / 0.13 | **0.11** | 0.79 | 0.43 | 0.01 | -86% | 8 / 8 of 8 | 1.1 / 1.2 |
+| **Harder five, sum of means** | | **1.31** | 4.36 | 3.16 | 0.26 | **-70%** | | |
+
+The whole suite passed in every run. On 55 r1 the combined suite failed once during scoring, then passed 3 repeats, so it's attributed to the known flaky IPC test, not confirmed. Each run's own claim of success matched its hidden-test score.
+
+**What the hidden tests don't score:**
+
+- **56, index: 2 of 2.** Both runs added a `(builderid, results)` index with migration 068 and a migration test, like all 8 Opus-led runs and unlike both H runs. Both checked the SQLite query plan, and neither benchmarked at scale. Both counted finished builds by `results IS NOT NULL` rather than `complete_at`, which is why both passed the official test with its flawed data.
+- **57, the unreproducible symptom: 0 of 2.** Neither run said it couldn't reproduce the "missing names" part. Both explained it instead: r1 said the bug "dropped some of their own" authors, and r2 described a parent walk that could skip real `release` ancestors. I haven't checked whether r2's mechanism is right. Both said existing stored rows stay wrong, and that they never saw their new test fail without the fix.
+- **54, the app-menu link: 0 of 2 handled.** r1 named the problem ("renaming a profile... detaches it from that entry") and didn't handle it. r2 didn't mention it. Both refused or warned about renaming a running app.
+- **53 r2** also fixed the project's known flaky IPC test, unasked, and ran the suite 25 times to confirm it. That added scope and cost: $0.40 and 7.8 minutes, against $0.19 and 0.8 minutes for r1.
+
+### Docs check, task 43 (2 runs)
+
+| | F | D | B | C | H | S |
+| --- | --- | --- | --- | --- | --- | --- |
+| Cost r1 / r2 $ | 3.96 / 4.25 | 4.19 / 3.84 | 3.84 / 3.92 | 1.85 / 2.01 | 1.77 / 2.09 | 2.78 / 3.63 |
+| Mean (vs F) | 4.11 | 4.02 (-2%) | 3.88 (-5%) | 1.93 (-53%) | 1.93 (-53%) | **3.21 (-22%)** |
+| Real errors (of 92) r1, r2 | 36, 38 | 39, 35 | 55, 70 | 58, 63 | 42, 41 | **39, 64** |
+| Both runs combined | 49 | 43 | 77 | 72 | 54 | **67** |
+| Cost per real error | $0.11 | $0.11 | $0.06 | $0.03 | $0.05 | **$0.06** |
+| Planted errors (of 20), by content | 20, 20 | 20, 20 | 20, 20 | 20, 20 | 20, 20 | 20, 20 |
+| Line citations past end of file | 0%, 0% | 0%, 0% | 0%, 10% | 0%, 0% | 9%, 20% | **2%, 32%** |
+| Wall time per run | ~400 s | ~535 s | ~270 s | ~390 s | ~725 s | **~320 / ~415 s** |
+
+Scored as for H: Claude Opus read each report against the list of 92 (`data/ground-truth/t43-S-scored.md`, gitignored), not blind. The line scorer saw only 7 of 20 planted errors in r2, because its line numbers for `steps/` pages are off, often past the end of the page. By content, both runs found all 20.
+
+- **The two runs differ a lot.** r1 found 39, about Opus alone's level, and r2 found 64, about Opus plus Haiku's level, at $3.63. r2 made 95 turns and wrote 43k tokens against r1's 70 and 31k.
+- **Outside the list,** r2 made 5 claims checked true against the code (forced `want_steps`/`want_logs` with the default template, the IRC and Telegram `authz` strings, the P4 example combining `p4base` and `p4viewspec`, and Bitbucket's undefined `ss`). r1 made one claim that looks false from the code: the `shallow` claim that H r2 also got wrong.
+- **Citations are r2's weak point:** 32% of its line numbers point past the end of the file, the worst of any run.
+
+**What Part 6 shows.** On the five coding tasks, Sonnet alone got the same hidden-test scores as every other setup, at 30% of Opus alone's cost and 5 times Haiku alone's. On care it falls between the two: it added the index both times, like Opus, but explained a symptom it couldn't have reproduced instead of flagging it, like Haiku. On the docs check its two runs bracket the range, from Opus alone's level to Opus plus Haiku's, at a cost between them, with unreliable line numbers in one run. Two runs per task, run after every other setup.

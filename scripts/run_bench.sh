@@ -9,6 +9,7 @@
 #   scripts/run_bench.sh 07 E    # run E: D plus the "no routing." prefix (framing test)
 #   scripts/run_bench.sh 07 F    # run F: D with the Agent tool blocked too (tool-setup test)
 #   scripts/run_bench.sh 07 H    # run H: F with Haiku as the main model, no Opus at all
+#   scripts/run_bench.sh 07 S    # run S: F with Sonnet as the main model, no Opus at all
 #   scripts/run_bench.sh 07 B v2 # optional tag: a repeat run in its own clone, ~/bench/t07-Bv2
 #   TASKS=data/tasks-v2.md scripts/run_bench.sh 11 A r1   # another task table
 #
@@ -19,7 +20,7 @@
 set -euo pipefail
 
 task="${1:?task number, e.g. 07}"
-run="${2:?A, B, C, D, E, F or H}"
+run="${2:?A, B, C, D, E, F, H or S}"
 tag="${3:-}"
 SRC="${SRC:-$HOME/bench-src/small}"   # default: symlink to the private ~10k-line project
 repo="$(cd "$(dirname "$0")/.." && pwd)"
@@ -47,7 +48,9 @@ case "$run" in
   F) extra=(--disallowedTools Agent,Skill) ;;
   # H is F with Haiku as the main model: Haiku alone, with no Opus briefing, reviewing or testing.
   H) model=haiku; extra=(--disallowedTools Agent,Skill) ;;
-  *) echo "run must be A, B, C, D, E, F or H" >&2; exit 1 ;;
+  # S is F with Sonnet as the main model: Sonnet alone, no Opus and no subagents.
+  S) model=sonnet; extra=(--disallowedTools Agent,Skill) ;;
+  *) echo "run must be A, B, C, D, E, F, H or S" >&2; exit 1 ;;
 esac
 
 [ -e "$dest" ] && { echo "$dest already exists; remove it first" >&2; exit 1; }
