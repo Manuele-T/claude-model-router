@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 
 # Checked for colour-blind separation; every bar is also labelled by name.
-COLORS = {"opus": "#2b7bd6", "natural": "#c2407f", "routed": "#ea6a36", "haiku": "#2e9e6b", "solo": "#b8860b"}
+COLORS = {"opus": "#2b7bd6", "natural": "#c2407f", "routed": "#ea6a36", "haiku": "#2e9e6b", "solo": "#b8860b", "sonnet": "#7a4fbf"}
 FOOT = "github.com/Manuele-T/claude-model-router"
 WIDTH = 3000
 
@@ -126,6 +126,7 @@ V2_FREE = {"name": "Free Opus", "models": "Opus, no subagents", "small": "could 
 V2_SKILL = {"name": "Skill-routed", "models": "Opus + Sonnet and Haiku", "small": "my skill picks the helpers", "kind": "routed"}
 V2_OH = {"name": "Opus plus Haiku", "models": "Opus + Haiku", "small": "Opus plans and reviews", "kind": "haiku"}
 V2_H = {"name": "Haiku alone", "models": "Haiku, no Opus", "kind": "solo"}
+V2_S = {"name": "Sonnet alone", "models": "Sonnet, no Opus", "kind": "sonnet"}
 V2_KEY = "Costs are API list prices, a proxy for subscription usage · Mostly 2 runs per setup, so treat these as strong hints"
 EXPL = "What the tasks and numbers mean"
 
@@ -220,7 +221,7 @@ CHARTS = {
          ("Forced Haiku", "85%", "actually 75% cheaper")],
         LEGEND), 4200),
     "haiku-alone": (page(
-        "Opus, Opus plus Haiku, or Haiku alone?",
+        "Opus with helpers, or a cheaper model alone?",
         "v2, 5 harder coding tasks and an 85-page docs check · estimated API cost",
         [section("5 harder coding tasks", "sum of each task's mean, 2 runs each, 2 of them on ~100k lines", [
             {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 4.36,
@@ -235,6 +236,8 @@ CHARTS = {
              "quality": ["Working code in every run", "Added a speed index: 2 of 2", "Flagged a symptom: 2 of 2"]},
             {"name": "Haiku alone", "models": "Haiku, no Opus at all", "kind": "solo", "cost": 0.26, "delta": "−94%",
              "quality": ["Working code in every run", "Added a speed index: 0 of 2", "Flagged a symptom: 0 of 2"]},
+            {"name": "Sonnet alone", "models": "Sonnet, no Opus at all", "kind": "sonnet", "cost": 1.31, "delta": "−70%",
+             "quality": ["Working code in every run", "Added a speed index: 2 of 2", "Flagged a symptom: 0 of 2"]},
          ], base="Opus alone"),
          section("Biggest review: docs check", "85 doc pages, mean of 2 runs", [
             {"name": "Opus only, blocked", "models": "Opus, no subagents", "kind": "opus", "cost": 4.11,
@@ -247,14 +250,16 @@ CHARTS = {
              "quality": ["58 and 63 of 92 (72 combined)"]},
             {"name": "Haiku alone", "models": "Haiku, no Opus at all", "small": "up to 20% of line citations don't exist",
              "kind": "solo", "cost": 1.93, "delta": "−53%", "quality": ["42 and 41 of 92 (54 combined)"]},
+            {"name": "Sonnet alone", "models": "Sonnet, no Opus at all", "small": "up to 32% of line citations don't exist",
+             "kind": "sonnet", "cost": 3.21, "delta": "−22%", "quality": ["39 and 64 of 92 (67 combined)"]},
          ], base="Opus alone")],
         ["<b>Coding:</b> a bug with a trap, a vague feature, a refactor, a REST endpoint and a far-off bug. Scored by "
          "hidden tests written before the runs (some with flaws that penalised careful runs; see the write-up). "
          "The speed index (on the endpoint task) and flagging a symptom it couldn't reproduce (on the far-off bug) aren't hidden-test scores: they come from reading those runs' results.",
-         "<b>Docs check:</b> real errors on a list of 92 verified against the code by Claude Opus. The list predates Haiku alone. "
-         "Adding true claims checked later: forced Haiku 62 and 66, Haiku alone 52 and 45. <b>Combined</b> = distinct issues found by the two runs together."],
+         "<b>Docs check:</b> real errors on a list of 92 verified against the code by Claude Opus. The list predates Haiku and Sonnet alone. "
+         "Adding true claims checked later: forced Haiku 62 and 66, Haiku alone 52 and 45, Sonnet alone 39 and 69. <b>Combined</b> = distinct issues found by the two runs together."],
         [],
-        "Two runs per setup · Haiku alone ran later, on the same Claude Code version · API list prices as a proxy for subscription usage"), 4000),
+        "Two runs per setup · Haiku and Sonnet alone ran later, on the same Claude Code version · API list prices as a proxy for subscription usage"), 4420),
     "v2-reading": (page(
         "Reading a ~100k-line codebase",
         "buildbot (open source), v2 · estimated API cost per run",
@@ -275,6 +280,7 @@ CHARTS = {
              "quality": ["55 and 70 of 92 (77 combined)"]},
             {**V2_OH, "small": "~6.5 min per run", "cost": 1.93, "delta": "−53%", "quality": ["58 and 63 of 92 (72 combined)"]},
             {**V2_H, "small": "~12 min per run", "cost": 1.93, "delta": "−53%", "quality": ["42 and 41 of 92 (54 combined)"]},
+            {**V2_S, "small": "~6 min per run", "cost": 3.21, "delta": "−22%", "quality": ["39 and 64 of 92 (67 combined)"]},
          ], base="Opus alone")],
         ["<b>Summaries:</b> read about 400 code files (a “module” is one source code file) and write a short paragraph on what each does and what it works with. "
          "Every run covered all 400. 83-98% of the links they named matched a real import, with no clear gap between setups.",
@@ -284,8 +290,9 @@ CHARTS = {
          "30 errors I planted were also found by every run, so they aren't scored here."],
         [("Skill-routed", "32-39%", "5% cheaper to 32% more expensive"),
          ("Opus plus Haiku", "82-88%", "actually 46-53% cheaper"),
-         ("Haiku alone, 85-page check", "81%", "actually 53% cheaper")],
-        V2_KEY + " · Haiku alone ran later, and only on the 85-page check", EXPL), 4620),
+         ("Haiku alone, 85-page check", "81%", "actually 53% cheaper"),
+         ("Sonnet alone, 85-page check", "25%", "actually 22% cheaper")],
+        V2_KEY + " · Haiku and Sonnet alone ran later, and only on the 85-page check", EXPL), 4900),
     "v2-coding-small": (page(
         "Writing code on a small project",
         "My own Python project, ~10k lines, v2 · estimated API cost for each group of tasks",
@@ -301,6 +308,7 @@ CHARTS = {
             {**V2_SKILL, "cost": 2.89, "delta": "+20%", "quality": ["Hidden tests: 43 and 42 of 43"]},
             {**V2_OH, "cost": 1.80, "delta": "−25%", "quality": ["Hidden tests: 43 and 42 of 43"]},
             {**V2_H, "cost": 0.11, "delta": "−95%", "quality": ["Hidden tests: 43 and 43 of 43"]},
+            {**V2_S, "cost": 0.76, "delta": "−68%", "quality": ["Hidden tests: 43 and 43 of 43"]},
          ], base="Opus alone")],
         ["<b>Clear feature:</b> add an optional description to app profiles, following exact rules. <b>Planted bug:</b> from a user's report, find and fix a bug I added to the code.",
          "<b>Bug with a trap:</b> fix a real bug where apps set to start at login didn't start properly, and where the obvious fix fails. <b>Vague feature:</b> add a command to rename a profile, with one rule: whatever worked under the old name must keep working. <b>Refactor:</b> split a ~700-line file into smaller ones without changing behaviour.",
@@ -310,8 +318,9 @@ CHARTS = {
          ("Simple, Opus plus Haiku", "65%", "actually 21% cheaper"),
          ("Harder, skill-routed", "32%", "actually cost 20% more"),
          ("Harder, Opus plus Haiku", "66%", "actually 25% cheaper"),
-         ("Harder, Haiku alone", "96%", "actually 95% cheaper")],
-        V2_KEY + " · Haiku alone ran later, and not on the simple tasks", EXPL), 4620),
+         ("Harder, Haiku alone", "96%", "actually 95% cheaper"),
+         ("Harder, Sonnet alone", "39%", "actually 68% cheaper")],
+        V2_KEY + " · Haiku and Sonnet alone ran later, and not on the simple tasks", EXPL), 4900),
     "v2-coding-large": (page(
         "Writing code on a ~100k-line codebase",
         "buildbot (open source), v2 · estimated API cost for both tasks, mean of 2 runs",
@@ -321,6 +330,7 @@ CHARTS = {
             {**V2_SKILL, "cost": 1.82, "delta": "−7%", "quality": ["Official tests: 17 and 21 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged the odd symptom: 2 of 2"]},
             {**V2_OH, "cost": 1.36, "delta": "−30%", "quality": ["Official tests: 21 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged the odd symptom: 2 of 2"]},
             {**V2_H, "cost": 0.15, "delta": "−93%", "quality": ["Official tests: 17 and 17 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 0 of 2", "Flagged the odd symptom: 0 of 2"]},
+            {**V2_S, "cost": 0.56, "delta": "−71%", "quality": ["Official tests: 21 and 21 of 21", "Corrected tests: 21 and 21 of 21", "Speed index: 2 of 2", "Flagged the odd symptom: 0 of 2"]},
          ], base="Opus alone")],
         ["<b>REST endpoint:</b> add a web API address returning how many of a builder's builds passed, failed and so on, staying fast with millions of builds. "
          "<b>Far-off bug:</b> notifications blamed the wrong people, and the cause was elsewhere, in buildbot's database code. I planted this bug, and buildbot's 6,400+ existing tests don't catch it.",
@@ -330,8 +340,9 @@ CHARTS = {
          "Tests don't score either one: they come from reading the runs' code and reports. 2 of 2 means both runs did it."],
         [("Skill-routed", "38%", "actually 7% cheaper"),
          ("Opus plus Haiku", "67%", "actually 30% cheaper"),
-         ("Haiku alone", "93%", "actually 93% cheaper")],
-        V2_KEY + " · Haiku alone ran later", EXPL), 3920),
+         ("Haiku alone", "93%", "actually 93% cheaper"),
+         ("Sonnet alone", "35%", "actually 71% cheaper")],
+        V2_KEY + " · Haiku and Sonnet alone ran later", EXPL), 4400),
     "v2-quality-price": (page(
         "Quality vs price: what does each real error cost?",
         "v2, doc checks on two codebases · estimated API cost per real error found",
@@ -341,6 +352,7 @@ CHARTS = {
             {**V2_SKILL, "models": "Opus + Sonnet", "cost": 0.06, "delta": "−44%", "quality": ["Found 55 and 70 of 92", "Both runs missed 15", "False claims: 0"]},
             {**V2_OH, "cost": 0.03, "delta": "−71%", "quality": ["Found 58 and 63 of 92", "Both runs missed 20", "False claims: 0"]},
             {**V2_H, "small": "up to 20% of line citations don't exist", "cost": 0.05, "delta": "−58%", "quality": ["Found 42 and 41 of 92", "Both runs missed 38", "False claims: 1"]},
+            {**V2_S, "small": "up to 32% of line citations don't exist", "cost": 0.06, "delta": "−44%", "quality": ["Found 39 and 64 of 92", "Both runs missed 25", "False claims: 1"]},
          ], base="Opus alone", cost_label="Cost per real error"),
          section("80-page doc check", "beets, ~52k lines, v1 runs re-scored", [
             {"name": "Forced Opus", "models": "Opus, no subagents", "small": "told not to delegate", "kind": "opus", "cost": 0.25, "quality": ["Found 41 and 33 of 61", "Both runs missed 17"]},
@@ -353,7 +365,7 @@ CHARTS = {
          "<b>“36 and 38 of 92”:</b> each setup ran twice. Its first run found 36 and its second found 38 of the 92 real errors on the list. Higher is better. The list holds errors the runs reported, each confirmed against the code by Claude Opus, so it can't include errors every run missed.",
          "<b>Both runs missed:</b> errors on the list that neither of the setup's two runs found. Lower is better. <b>False claims:</b> errors a run reported that I confirmed were wrong. This is a minimum, judged by Claude Opus knowing which setup wrote each report, and not counted on beets."],
         [],
-        V2_KEY, EXPL), 4020),
+        V2_KEY, EXPL), 4320),
     "v2-reading-depth": (page(
         "How much did each setup actually read?",
         "v2 doc checks, measured from the run transcripts · two runs per setup",
@@ -362,6 +374,8 @@ CHARTS = {
              "cost": 4.02, "delta": "−2%"},
             {**V2_OPUS, "read": (532, 563), "written": (30, 25), "errors": "36 and 38 of 92", "combined": 49,
              "cost": 4.11},
+            {**V2_S, "read": (532, 719), "written": (31, 43), "errors": "39 and 64 of 92", "combined": 67,
+             "cost": 3.21, "delta": "−22%"},
             {**V2_H, "read": (620, 697), "written": (107, 103), "errors": "42 and 41 of 92", "combined": 54,
              "cost": 1.93, "delta": "−53%"},
             {**V2_SKILL, "models": "Opus + Sonnet", "small": "5-7 subagents", "read": (928, 981), "written": (61, 60),
@@ -379,13 +393,13 @@ CHARTS = {
             {**V2_OH, "small": "8 subagents", "read": (1291, 1283), "written": (167, 188),
              "errors": "30 and 30 of 61", "combined": 39, "cost": 1.49, "delta": "−84%"},
          ])],
-        ["<b>What it shows:</b> on buildbot, real errors rose with the amount read. On beets they didn't: forced Opus read less than either delegated setup and still found the most. So volume can't be the whole story.",
+        ["<b>What it shows:</b> on buildbot, real errors rose with the amount read. On beets they didn't: forced Opus read less than either delegated setup and still found the most. So volume can't be the whole story. The model matters too: Sonnet alone's second run read about as much as Haiku alone's runs and found 64, against their 41 and 42.",
          "<b>Tool output read:</b> characters returned to the agents by their tools, mostly files and command output, summed across Opus and its subagents. Subagents' reports back to Opus aren't counted. Re-reads are, so this measures work done, not distinct pages. Bars show the mean of two runs.",
          "<b>Tokens written:</b> all output tokens, thinking included, summed across Opus and its subagents.",
          "<b>Est. API cost:</b> mean cost per run at API list prices, a proxy for subscription usage. Percentages compare with the baseline: Opus alone on buildbot, forced Opus on beets. Bars use one scale across both checks.",
          "<b>“36 and 38 of 92”:</b> each setup ran twice. Its first run found 36 and its second found 38 of the 92 real errors on the list. Higher is better. The list holds errors the runs reported, each confirmed against the code by Claude Opus, so it can't include errors every run missed. <b>Combined</b> = different errors found across both runs."],
         [],
-        "Measured after the runs on two tasks, not a planned test, so treat this as a hint", EXPL), 3920),
+        "Measured after the runs on two tasks, not a planned test, so treat this as a hint · Haiku and Sonnet alone ran later", EXPL), 4140),
 }
 
 
