@@ -728,6 +728,45 @@ Scored as for H: Claude Opus read each report against the list of 92 (`data/grou
 
 **What Part 6 shows.** On the five coding tasks, Sonnet alone got the same hidden-test scores as every other setup, at 30% of Opus alone's cost and 5 times Haiku alone's. On care it falls between the two: it added the index both times, like Opus, but explained a symptom it couldn't have reproduced instead of flagging it, like Haiku. On the docs check its two runs bracket the range, from Opus alone's level to Opus plus Haiku's, at a cost between them, with unreliable line numbers in one run. Two runs per task, run after every other setup.
 
+## v2, Part 7: tasks that hide a judgement call (tasks 61-67; 2026-11-08)
+
+Design in `data/tasks-v11.md`, committed before any scored run. Four setups (F Opus alone, C Opus plus Haiku, H Haiku alone, S Sonnet alone), two runs each, 56 runs, Claude Code 2.1.317, $18.61 in total at API prices. Each task is short, but the prompt leaves something important unsaid. Tasks 63 and 67 are controls with nothing hidden. Mismatches 0, fallbacks 0.
+
+### Cost and hidden tests
+
+| Task | What's left unsaid | Hidden tests, every run | F r1 / r2 $ (mean) | C | H | S |
+| --- | --- | --- | --- | --- | --- | --- |
+| 61 Per-profile environment variables | Values can be secrets | 10 of 10 | 1.35 / 1.42 (1.39) | 1.14 / 0.96 (1.05) | 0.10 / 0.16 (0.13) | 0.43 / 0.43 (0.43) |
+| 62 Bug report naming the wrong cause | The user's cause is wrong | 6 of 6 | 0.42 / 0.35 (0.39) | 0.30 / 0.30 (0.30) | 0.02 / 0.02 (0.02) | 0.14 / 0.14 (0.14) |
+| 63 JSON output (control) | Nothing | 5 of 5 | 0.37 / 0.28 (0.33) | 0.23 / 0.35 (0.29) | 0.02 / 0.01 (0.01) | 0.11 / 0.12 (0.11) |
+| 64 Latest finished build endpoint | A builder can have millions of builds | 13 of 13 | 0.76 / 0.66 (0.71) | 0.60 / 0.42 (0.51) | 0.03 / 0.03 (0.03) | 0.30 / 0.22 (0.26) |
+| 65 Change a step's default timeout | Docs and a release note | 4 of 4 | 0.19 / 0.13 (0.16) | 0.23 / 0.23 (0.23) | under 0.01 / 0.01 (0.01) | 0.07 / 0.06 (0.07) |
+| 66 Cache a frequent builder lookup | A cache can go stale | 4 of 4 | 1.21 / 0.96 (1.08) | 0.82 / 0.83 (0.82) | 0.04 / 0.09 (0.07) | 0.25 / 0.38 (0.32) |
+| 67 Compact interval format (control) | Nothing | 3 of 3 | 0.18 / 0.17 (0.17) | 0.23 / 0.22 (0.23) | 0.01 / under 0.01 (0.01) | 0.06 / 0.05 (0.06) |
+| **Sum of means** | | | **4.23** | **3.43 (-19%)** | **0.27 (-94%)** | **1.38 (-67%)** |
+
+Every run passed every hidden test, and each project's whole suite passed in every run (once after a re-run, see Limits). Mean wall time per run: Opus alone 2.8 min, Opus plus Haiku 4.0, Haiku alone 2.6, Sonnet alone 1.4.
+
+### Care points (reported separately from the hidden tests)
+
+| Care point | F | C | H | S |
+| --- | --- | --- | --- | --- |
+| 61 Secret values not printed | 2 of 2 | 2 of 2 | 2 of 2 | 2 of 2 |
+| 62 Said the user's cause was wrong | 2 of 2 | 2 of 2 | 2 of 2 | 2 of 2 |
+| 64 Didn't load every build | 2 of 2 | 2 of 2 | 2 of 2 | 2 of 2 |
+| 65 Docs state the new default | 2 of 2 | 2 of 2 | 2 of 2 | 2 of 2 |
+| **65 Release note added** | **2 of 2** | **2 of 2** | **0 of 2** | **0 of 2** |
+| 66 Cache doesn't go stale (4 checks) | 2 of 2 | 2 of 2 | 2 of 2 | 2 of 2 |
+| **61, not planned: noticed and fixed the prompt's mistake** | **2 of 2** | **2 of 2** | **1 of 2** | **0 of 2** |
+
+- **Release note (65):** none of the four Haiku and Sonnet runs wrote one, and all four raised it in their answer instead of doing it. One Sonnet run said it couldn't find the release-notes folder, which exists at the repo root.
+- **The unplanned point (61):** the prompt wrongly says one launch path, starting at login, uses the same code as the others. It doesn't on this baseline. The runs that fixed it did so unasked. The three that didn't (Haiku r1, Sonnet r1 and r2) told the user that path applied the new setting, repeating the prompt's claim, and left it broken. Checked in the diffs. This wasn't a planned test, and it's only 8 runs.
+- **Second master (66, noted, not scored):** 7 of 8 answers mention caches going stale with another master sharing the database, including both Haiku runs. Sonnet r1 didn't.
+
+**What Part 7 shows.** Only two points separate the setups, a release note and a mistaken remark in the prompt, and both are about going beyond the literal request or checking it. On the planned traps for secrets, a wrong cause, scale and a stale cache, Haiku alone and Sonnet alone did as well as Opus. So either those are within reach of the cheaper models, or the traps were too easy: the wrong cause in 62 was stated openly and disproved by one read of the code. Costs followed the v2 pattern. On tasks this short Opus plus Haiku saved less than on big reviews (19% in total), and cost more than Opus alone on the two smallest tasks.
+
+**Limits.** Two runs per setup. Tasks and tests were written by Claude Opus after seeing v2's results, and it also judged the answers, not blind. Two runs were restarted before they did scored work (a usage limit, a laptop restart), under new tags. One suite failure (63 S r2) passed 4 re-runs and is attributed to the known flaky test, not confirmed. A few discarded trial runs of 61 and 63 aren't counted.
+
 ## What I'm working on next
 
 I wanted a skill where Opus picks the best setup for each task, including Haiku with no Opus at all. So far, I was able to see that the skill can definitely spawn a Haiku subagent to do the job, but cannot completely switch the session to Haiku, at least on Claude Code 2.1.317.
