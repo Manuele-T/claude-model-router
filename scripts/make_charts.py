@@ -80,7 +80,7 @@ def section(title, note, rows, base="forced Opus", cost_label="Est. API cost"):
     return "\n".join(out)
 
 
-def depth_section(title, note, rows):
+def depth_section(title, note, rows, read_max=1450, written_max=212.5, cost_max=9.20):
     """Two bar columns, read and written, each on one scale shared by every section of the chart."""
     out = [f"<h2>{esc(title)} <span>· {esc(note)}</span></h2>",
            '<div class="thead depth"><div>Run</div><div>Models used</div><div>Real errors found</div>'
@@ -95,11 +95,11 @@ def depth_section(title, note, rows):
             f'<div class="row depth"><div class="n">{esc(r["name"])}</div>'
             f'<div class="m">{esc(r["models"])}{small}</div>'
             f'<div class="q">{esc(r["errors"])}<small>{r["combined"]} combined</small></div>'
-            f'<div class="bar"><i style="width:{int(340 * read_mean / 1450)}px;background:{color}"></i>'
+            f'<div class="bar"><i style="width:{int(340 * read_mean / read_max)}px;background:{color}"></i>'
             f'{min(r["read"]):,}-{max(r["read"]):,}k</div>'
-            f'<div class="bar"><i style="width:{int(200 * written_mean / 212.5)}px;background:{color}"></i>'
+            f'<div class="bar"><i style="width:{int(200 * written_mean / written_max)}px;background:{color}"></i>'
             f"{lo}-{hi}k</div>"
-            f'<div class="bar"><i style="width:{int(170 * r["cost"] / 9.20)}px;background:{color}"></i>'
+            f'<div class="bar"><i style="width:{int(170 * r["cost"] / cost_max)}px;background:{color}"></i>'
             f'<span>${r["cost"]:.2f}<small>{esc(r.get("delta", "baseline"))}</small></span></div></div>')
     return "\n".join(out)
 
@@ -400,6 +400,22 @@ CHARTS = {
          "<b>“36 and 38 of 92”:</b> each setup ran twice. Its first run found 36 and its second found 38 of the 92 real errors on the list. Higher is better. The list holds errors the runs reported, each confirmed against the code by Claude Opus, so it can't include errors every run missed. <b>Combined</b> = different errors found across both runs."],
         [],
         "Measured after the runs on two tasks, not a planned test, so treat this as a hint · Haiku and Sonnet alone ran later", EXPL), 4140),
+    "opus-token-comparison": (page(
+        "Same model, same task: what did the instruction change?",
+        "beets 80-page doc check, ~52k lines, v1 runs re-scored · two runs per setup",
+        [depth_section("Opus told not to delegate vs Opus left alone", "neither used subagents", [
+            {"name": "Forced Opus", "models": "Opus, no subagents", "small": "told not to delegate", "kind": "opus",
+             "read": (868, 698), "written": (50, 44), "errors": "41 and 33 of 61", "combined": 44, "cost": 9.20},
+            {**V2_FREE, "read": (618, 835), "written": (34, 30), "errors": "27 and 35 of 61", "combined": 36,
+             "cost": 6.01, "delta": "−35%"},
+         ], read_max=783, written_max=47, cost_max=9.20)],
+        ["<b>What it shows:</b> compared with Opus left alone, Opus told not to delegate read about the same (about 8% more on average), but wrote about 47% more and cost 53% more. It also found more real errors: 44 across its two runs, against 36.",
+         "<b>Tool output read:</b> characters returned to Opus by its tools, mostly files and command output. These are characters, not tokens. Bars show the mean of two runs.",
+         "<b>Tokens written:</b> all output tokens, thinking included. Bars show the mean of two runs.",
+         "<b>Est. API cost:</b> mean cost per run at API list prices, a proxy for subscription usage. The percentage compares with Forced Opus.",
+         "<b>“41 and 33 of 61”:</b> each setup ran twice, and each number is one run's real errors found, out of 61 on the list. Higher is better. <b>Combined</b> = different errors found across both runs."],
+        [],
+        "Two runs per setup, and the effect of the instruction wasn't tested on its own, so treat this as a hint", EXPL), 2220),
 }
 
 
