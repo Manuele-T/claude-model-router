@@ -22,11 +22,13 @@ This repo is an experiment to find out. It has two parts:
 
 ### v2: bigger code, writing code, and no Opus at all
 
-94 runs on 10 tasks: 3 reading tasks on buildbot (~100k lines), and 7 coding tasks scored by hidden tests. It also added Haiku alone, with no Opus anywhere.
+234 runs: 3 reading tasks on buildbot (~100k lines), 7 coding tasks scored by hidden tests, and 16 short coding tasks that each hide a trap. It also added Haiku alone and Sonnet alone, with no Opus anywhere.
 
 - **Coding:** every setup produced working code. On five harder tasks, Haiku alone cost 94% less than Opus alone.
 - **Big reviews:** on an 85-page docs check, Opus plus Haiku cost half as much as Opus alone and found over 60% more real errors. It also found about 30% more than Haiku alone at the same price.
 - **What Opus adds is care:** all 8 Opus-led runs added a speed index when asked for speed and flagged a symptom they couldn't reproduce. Neither Haiku-alone run did either.
+- **Sonnet alone** cost 70% less than Opus alone on the five harder tasks, but 5 times Haiku alone, and landed between them on care.
+- **I tried to make the cheap models fail, and mostly couldn't.** Across the 16 trap tasks, there was one real hidden-test miss in 128 runs, and Haiku alone cost about 5% of Opus alone. Opus was more thorough, finding every planted bug in a code review where Haiku found 2 of 3, but it wasn't better across the board: on a timing bug, all 4 Opus-led runs failed and the only pass was Haiku.
 - **My routing skill rarely paid off**, and left alone, Opus never delegated.
 
 **[Read the v2.0 results and discussion](docs/v2-results.md)**
@@ -38,12 +40,13 @@ This repo is an experiment to find out. It has two parts:
 | A small, testable coding task you'll review yourself | **Haiku alone** | 1-12% of Opus alone's cost on five harder coding tasks, with working code in every run |
 | Coding where care matters | **Opus delegating to Haiku** | 28% cheaper than Opus alone on those tasks, and Opus reviews the work |
 | A big review or audit | **Opus delegating to Haiku** | Half the cost of Opus alone on an 85-page docs check, with over 60% more real errors found |
+| Reviewing code, or anything where every case has to be covered | **Keep Opus involved** | Found all 3 planted bugs in every review run, where Haiku alone found 2 of 3 both times |
 
 <p align="center">
   <img src="charts/haiku-alone.png" alt="Five harder coding tasks: Opus alone $4.36, spontaneous Opus $4.49, skill-routed $4.71, forced Haiku $3.16, Haiku alone $0.26, all with working code. Docs check: Opus alone $4.11 finding 36 and 38 of 92 real errors, spontaneous Opus $4.02 finding 39 and 35, skill-routed $3.88 finding 55 and 70, forced Haiku $1.93 finding 58 and 63, Haiku alone $1.93 finding 42 and 41" width="800">
 </p>
 
-**Treat these as strong hints, not proof.** Most setups ran twice per task, costs are API prices used as a proxy for subscription usage, and Claude Opus wrote my hidden tests and verified the errors. Two of those tests had flaws, reported in the results. No coding task made Haiku alone fail, so I don't know where its limit is. Test on your own work.
+**Treat these as strong hints, not proof.** Most setups ran twice per task, costs are API prices used as a proxy for subscription usage, and Claude Opus wrote my hidden tests and verified the errors. Three of those tests had flaws, reported in the results. Even tasks built to trip it up didn't make Haiku alone clearly fail, so I don't know where its limit is. Test on your own work.
 
 **Takeaway: cheaper tokens don't necessarily mean cheaper tasks, and the most expensive model isn't always the one doing the useful work. Measure the whole workflow.**
 
