@@ -416,6 +416,22 @@ CHARTS = {
          "<b>“41 and 33 of 61”:</b> each setup ran twice, and each number is one run's real errors found, out of 61 on the list. Higher is better. <b>Combined</b> = different errors found across both runs."],
         [],
         "Two runs per setup, and the effect of the instruction wasn't tested on its own, so treat this as a hint", EXPL), 2220),
+    "token-comparison-opus-haiku": (page(
+        "Opus alone vs Opus plus Haiku: how much work did each do?",
+        "buildbot 85-page doc check, ~100k lines, v2 · two runs per setup",
+        [depth_section("85-page doc check", "the result that started the theory", [
+            {**V2_OPUS, "read": (532, 563), "written": (30, 25), "errors": "36 and 38 of 92", "combined": 49,
+             "cost": 4.11},
+            {**V2_OH, "small": "6-7 subagents", "read": (1252, 1649), "written": (188, 237),
+             "errors": "58 and 63 of 92", "combined": 72, "cost": 1.93, "delta": "−53%"},
+         ], read_max=1450, written_max=212.5, cost_max=4.11)],
+        ["<b>What it shows:</b> Opus plus Haiku read about 2.7 times as much as Opus alone and wrote about 8 times as many tokens, and still cost 53% less, because Haiku's tokens are so much cheaper. It also found more real errors: 72 across its two runs, against 49.",
+         "<b>Tool output read:</b> characters returned to the agents by their tools, mostly files and command output, summed across Opus and its subagents. These are characters, not tokens. Subagents' reports back to Opus aren't counted. Bars show the mean of two runs.",
+         "<b>Tokens written:</b> all output tokens, thinking included, summed across Opus and its subagents. Bars show the mean of two runs.",
+         "<b>Est. API cost:</b> mean cost per run at API list prices, a proxy for subscription usage. The percentage compares with Opus alone.",
+         "<b>“36 and 38 of 92”:</b> each setup ran twice, and each number is one run's real errors found, out of 92 on the list. Higher is better. <b>Combined</b> = different errors found across both runs."],
+        [],
+        "Two runs per setup, measured after the runs, so treat this as a hint", EXPL), 2220),
 }
 
 
