@@ -2,7 +2,7 @@
 
 [Back to the README](../README.md) · [v1.0 results](v1-results.md)
 
-**The questions:** does delegating still pay on a much bigger codebase, does it hold when writing code, and how much of the result is Opus? That made 234 runs: 3 reading tasks on buildbot (~100k lines), 7 coding tasks scored by hidden tests, and 16 short coding tasks that each hide a trap.
+**The questions:** does delegating still pay on a much bigger codebase, does it hold when writing code, and how much of the result is Opus? That made 234 runs: 3 reading tasks on buildbot (~100k lines), 7 coding tasks scored by hidden tests, and 16 short coding tasks, 14 of them hiding a trap.
 
 **The six setups:**
 
@@ -25,10 +25,10 @@ Costs are API list prices used as a proxy for subscription usage, and most setup
 | Reviewing code, or anything where every case has to be covered | **Keep Opus involved** | Found all 3 planted bugs in every review run, where Haiku alone found 2 of 3 both times |
 
 <p align="center">
-  <img src="../charts/haiku-alone.png" alt="Five harder coding tasks: Opus alone $4.36, spontaneous Opus $4.49, skill-routed $4.71, forced Haiku $3.16, Haiku alone $0.26, all with working code; Haiku alone added no speed index and didn't flag a symptom it couldn't reproduce. Docs check: Opus alone $4.11 finding 36 and 38 of 92 real errors, spontaneous Opus $4.02 finding 39 and 35, skill-routed $3.88 finding 55 and 70, forced Haiku $1.93 finding 58 and 63, Haiku alone $1.93 finding 42 and 41" width="800">
+  <img src="../charts/haiku-alone.png" alt="Five harder coding tasks: Opus alone $4.36, spontaneous Opus $4.49, skill-routed $4.71, forced Haiku $3.16, Haiku alone $0.26, Sonnet alone $1.31, all with working code; Haiku alone added no speed index and didn't flag a symptom it couldn't reproduce, and Sonnet alone added the index but didn't flag the symptom. Docs check: Opus alone $4.11 finding 36 and 38 of 92 real errors, spontaneous Opus $4.02 finding 39 and 35, skill-routed $3.88 finding 55 and 70, forced Haiku $1.93 finding 58 and 63, Haiku alone $1.93 finding 42 and 41, Sonnet alone $3.21 finding 39 and 64" width="800">
 </p>
 
-- **Most of the bill is Opus, and on coding tasks like these it may not be needed.** My hidden tests saw no difference in correctness between Haiku alone and anything using Opus. Even [16 tasks built to trip it up](#tasks-with-hidden-traps) didn't make it clearly fail, so I don't know where its limit is.
+- **Most of the bill is Opus, and on coding tasks like these it may not be needed.** My hidden tests saw no difference in correctness between Haiku alone and anything using Opus. Even [16 short tasks, most built to trip it up](#tasks-with-hidden-traps) didn't make it clearly fail, so I don't know where its limit is.
 - **What Opus adds is care, and tests miss it.** All 8 Opus-led runs added a database index when asked for speed, and all 8 flagged a symptom they couldn't reproduce. Neither Haiku-alone run did either. Up to a fifth of Haiku's line citations on the docs check don't exist.
 - **Delegating moves money into checking.** On coding tasks, Opus plus Haiku spent up to 37% of a task's cost on checking after the first edit, against 7-26% for Opus alone.
 - **The routing skill rarely paid.** It often sends work to Sonnet, whose cached reads cost the same as Opus's. On coding it was usually the most expensive setup, though it was the most thorough on the biggest docs check.
@@ -61,7 +61,7 @@ Each setup ran twice (three times where results were far apart), with the same v
 - **Every run caught every planted error**, so they were too easy; the real errors are what separate the setups.
 
 <p align="center">
-  <img src="../charts/v2-reading.png" alt="Reading buildbot: all three tasks cost $8.98 for Opus alone, $8.26 spontaneous Opus, $10.19 skill-routed and $4.44 forced Haiku; on the 85-page docs check Opus alone found 36 and 38 of 92 real errors for $4.11, spontaneous Opus 39 and 35 for $4.02, skill-routed 55 and 70 for $3.88, forced Haiku 58 and 63 for $1.93, and Haiku alone 42 and 41 for $1.93" width="800">
+  <img src="../charts/v2-reading.png" alt="Reading buildbot: all three tasks cost $8.98 for Opus alone, $8.26 spontaneous Opus, $10.19 skill-routed and $4.44 forced Haiku; on the 85-page docs check Opus alone found 36 and 38 of 92 real errors for $4.11, spontaneous Opus 39 and 35 for $4.02, skill-routed 55 and 70 for $3.88, forced Haiku 58 and 63 for $1.93, Haiku alone 42 and 41 for $1.93, and Sonnet alone 39 and 64 for $3.21" width="800">
 </p>
 
 Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per setup, and "of 42/92" counts errors found by any run, not true recall. Per-run numbers and the scoring rules are in [`data/results.md`](../data/results.md).
@@ -69,11 +69,11 @@ Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per se
 ## Writing code
 
 <p align="center">
-  <img src="../charts/v2-coding-small.png" alt="Writing code on the small project: on 2 simple tasks, costs were $0.89 for Opus alone, $1.04 free Opus, $1.05 skill-routed and $0.70 Opus plus Haiku, all passing 13 of 13 hidden tests; on 3 harder tasks, $2.41, $2.61, $2.89, $1.80 and $0.11 for Haiku alone, with the lost points coming from a flaw in my test" width="800">
+  <img src="../charts/v2-coding-small.png" alt="Writing code on the small project: on 2 simple tasks, costs were $0.89 for Opus alone, $1.04 free Opus, $1.05 skill-routed and $0.70 Opus plus Haiku, all passing 13 of 13 hidden tests; on 3 harder tasks, $2.41, $2.61, $2.89, $1.80, $0.11 for Haiku alone and $0.76 for Sonnet alone, with the lost points coming from a flaw in my test" width="800">
 </p>
 
 <p align="center">
-  <img src="../charts/v2-coding-large.png" alt="Writing code on buildbot: 2 harder tasks cost $1.95 for Opus alone, $1.88 free Opus, $1.82 skill-routed, $1.36 Opus plus Haiku and $0.15 Haiku alone. All scored 21 of 21 on corrected tests. All Opus-led runs added a speed index and flagged the odd symptom; neither Haiku-alone run did" width="800">
+  <img src="../charts/v2-coding-large.png" alt="Writing code on buildbot: 2 harder tasks cost $1.95 for Opus alone, $1.88 free Opus, $1.82 skill-routed, $1.36 Opus plus Haiku, $0.15 Haiku alone and $0.56 Sonnet alone. All scored 21 of 21 on corrected tests. All Opus-led runs added a speed index and flagged the odd symptom; neither Haiku-alone run did either, and Sonnet alone added the index but didn't flag the symptom" width="800">
 </p>
 
 "But I only use Claude for coding." So v2 also tests tasks that write code, on the small codebase: a well-specified feature touching 7-9 files, and a bug hunt from a user's symptom (one bug planted before any run, not caught by the existing tests). Each was scored by a hidden test file written before any run, plus the whole unit suite. Each setup ran twice ([`data/tasks-v6.md`](../data/tasks-v6.md)).
@@ -159,7 +159,7 @@ On those coding tasks Haiku alone matched every other setup's hidden-test scores
 
 - **For coding tasks like these, the Opus part was most of the bill.** Haiku alone cost 1-12% of Opus alone, which beats Opus plus Haiku by far, and my tests saw no difference in correctness.
 - **On a big review job, Opus plus Haiku was clearly better:** the same cost as Haiku alone, with about 30% more real errors per run once later-checked claims are included (the list of 92 was built before Haiku alone ran, which favoured the others). Haiku's cost advantage also disappears, because its long prompts hit the 5x rate.
-- **Runs rarely make things up on doc checks.** Of roughly 1,000 claims across 18 runs, I confirmed one false claim, from Haiku alone. Limits are in [`data/results.md`](../data/results.md).
+- **Runs rarely make things up on doc checks.** Of roughly 1,000 claims across 18 runs, I confirmed one false claim, from Haiku alone. Sonnet alone, run later, made the same false claim once. Limits are in [`data/results.md`](../data/results.md).
 - **Haiku alone still found a bit more than Opus alone on that docs check**, at under half the price.
 - **What my tests don't score may matter most.** On the endpoint, all 8 runs with Opus added a database index for speed, and neither Haiku-alone run did. On the bug, all 8 runs with Opus said they couldn't reproduce part of the report, and neither Haiku-alone run said so. On the docs check, up to a fifth of Haiku's line citations don't exist. So it got the work right on these tasks but took less care, and its reports were less reliable.
 
@@ -172,6 +172,10 @@ On those coding tasks Haiku alone matched every other setup's hidden-test scores
 </p>
 
 Why would Opus delegating to Haiku beat Opus alone on the 85-page check? My theory was that it simply does more work, and the extra coverage makes up for Haiku being weaker. On buildbot the numbers fit: Opus plus Haiku wrote about 8 times the tokens of Opus alone and read nearly 3 times as much, and the bill still halved.
+
+<p align="center">
+  <img src="../charts/token-comparison-opus-haiku.png" alt="Buildbot 85-page docs check. Opus alone: 532-563k characters read, 25-30k tokens written, 36 and 38 of 92 errors, $4.11. Opus plus Haiku: 1,252-1,649k read, 188-237k written, 58 and 63 of 92 errors, $1.93." width="800">
+</p>
 
 It isn't a law. On beets, an Opus told not to delegate read less than the delegated setups and still found the most.
 
@@ -197,7 +201,7 @@ Sonnet got the same hidden-test scores as every other setup, and its care landed
 
 ## Tasks with hidden traps
 
-To find where the cheaper models break, I wrote 16 short coding tasks that each leave something important unsaid, in two sets ([first](../data/tasks-v11.md), [second](../data/tasks-v12.md)). The tasks and tests were committed before any run. Two runs per setup, 128 runs. Answers that had to be judged in the second set were scored with setup names hidden.
+To find where the cheaper models break, I wrote 16 short coding tasks in two sets, 14 of which leave something important unsaid (the other 2 are controls) ([first](../data/tasks-v11.md), [second](../data/tasks-v12.md)). The tasks and tests were committed before any run. Two runs per setup, 128 runs. Answers that had to be judged in the second set were scored with setup names hidden.
 
 | Sum of means | Opus alone | Opus plus Haiku | Sonnet alone | Haiku alone |
 | --- | --- | --- | --- | --- |
@@ -224,18 +228,18 @@ So on short, focused tasks, the gap between Opus and the cheaper models is much 
 ## Cost per error, and errors missed twice
 
 <p align="center">
-  <img src="../charts/v2-quality-price.png" alt="Cost per real error. On the 85-page buildbot check: Opus alone $0.11, free Opus $0.11, skill-routed $0.06, Opus plus Haiku $0.03, Haiku alone $0.05. On the 80-page beets check: forced Opus $0.25, free Opus $0.19, skill-routed $0.14, Opus plus Haiku $0.05" width="800">
+  <img src="../charts/v2-quality-price.png" alt="Cost per real error. On the 85-page buildbot check: Opus alone $0.11, free Opus $0.11, skill-routed $0.06, Opus plus Haiku $0.03, Haiku alone $0.05, Sonnet alone $0.06. On the 80-page beets check: forced Opus $0.25, free Opus $0.19, skill-routed $0.14, Opus plus Haiku $0.05" width="800">
 </p>
 
 Two questions from a reader. **What does each real error cost?** And **does a setup keep missing the same errors?** If it does, whatever's on the list could decide the verdict.
 
-| Doc checks | Opus only | Opus, spontaneous | Skill-routed | Forced Haiku | Haiku alone |
-| --- | --- | --- | --- | --- | --- |
-| Cost per real error, 2-page check | $0.12 | $0.14 | $0.11 | **$0.04** | not run |
-| Cost per real error, 85-page check | $0.11 | $0.11 | $0.06 | **$0.03** | $0.05 |
-| Cost per real error, beets 80-page check | $0.25 | $0.19 | $0.14 | **$0.05** | not run |
-| Errors both runs missed, 85-page check (of 92) | 43 | 49 | 15 | 20 | 38 |
-| Errors both runs missed, beets check (of 61) | 17 | 25 | 26 | 22 | not run |
+| Doc checks | Opus only | Opus, spontaneous | Skill-routed | Forced Haiku | Haiku alone | Sonnet alone |
+| --- | --- | --- | --- | --- | --- | --- |
+| Cost per real error, 2-page check | $0.12 | $0.14 | $0.11 | **$0.04** | not run | not run |
+| Cost per real error, 85-page check | $0.11 | $0.11 | $0.06 | **$0.03** | $0.05 | $0.06 |
+| Cost per real error, beets 80-page check | $0.25 | $0.19 | $0.14 | **$0.05** | not run | not run |
+| Errors both runs missed, 85-page check (of 92) | 43 | 49 | 15 | 20 | 38 | 25 |
+| Errors both runs missed, beets check (of 61) | 17 | 25 | 26 | 22 | not run | not run |
 
 - **Forced Haiku was the cheapest per error on every check**, even on beets, where forced Opus found the most. So the better choice depends on what a missed error costs you.
 - **Repeat misses aren't specific to Haiku.** Which setup misses the most changes with the codebase: Opus alone missed the most on buildbot and the fewest on beets.
@@ -247,7 +251,7 @@ Two questions from a reader. **What does each real error cost?** And **does a se
 - Claude Opus designed the coding tasks after seeing that Haiku did well, and wrote their hidden tests. Committing them before the runs reduces the risk of bias but doesn't remove it. Three hidden tests penalised good runs: all official scores are kept, with a corrected score labelled as added afterwards on one of them. One prompt described a symptom the planted bug doesn't seem to cause.
 - The trap tasks were designed after seeing where Haiku and Sonnet slipped, and Claude Opus wrote and scored them. Blind scoring reduces that risk but doesn't remove it, and a few answers gave away their setup.
 - Haiku alone ran after the other setups, not interleaved with them, though on the same Claude Code version. It wasn't run on most reading tasks.
-- False positives on the v2 doc checks are a floor: one confirmed false claim among about 1,000, judged by Claude Opus knowing which setup wrote each report, without re-reading claims that closely matched a verified error.
+- False positives on the v2 doc checks are a floor: one confirmed false claim among about 1,000 (Sonnet alone, run later, repeated it once), judged by Claude Opus knowing which setup wrote each report, without re-reading claims that closely matched a verified error.
 - Costs use API list prices as a proxy for subscription usage; Anthropic doesn't publish the exact subscription weighting.
 - The small project is private, so its results can't be rerun by others, and its prompts and hidden tests stay private (hashes are public). The buildbot reading tasks can be rerun. Coding task 57 uses a planted bug, one line removed.
 - Doc-check scores count errors verified against the code by Claude Opus, not by hand, on lists built from the runs' own findings, so they aren't true recall.
