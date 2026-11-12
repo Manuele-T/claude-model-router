@@ -10,6 +10,7 @@
 #   scripts/run_bench.sh 07 F    # run F: D with the Agent tool blocked too (tool-setup test)
 #   scripts/run_bench.sh 07 H    # run H: F with Haiku as the main model, no Opus at all
 #   scripts/run_bench.sh 07 S    # run S: F with Sonnet as the main model, no Opus at all
+#   scripts/run_bench.sh 07 R    # run R: H, then a fresh Opus session in the same clone reviews and fixes
 #   scripts/run_bench.sh 07 B v2 # optional tag: a repeat run in its own clone, ~/bench/t07-Bv2
 #   TASKS=data/tasks-v2.md scripts/run_bench.sh 11 A r1   # another task table
 #
@@ -20,12 +21,14 @@
 set -euo pipefail
 
 task="${1:?task number, e.g. 07}"
-run="${2:?A, B, C, D, E, F, H or S}"
+run="${2:?A, B, C, D, E, F, H, R or S}"
 tag="${3:-}"
 SRC="${SRC:-$HOME/bench-src/small}"   # default: symlink to the private ~10k-line project
 repo="$(cd "$(dirname "$0")/.." && pwd)"
-dest="$HOME/bench/t${task}-${run}${tag}"
-out="$repo/data/runs/t${task}-${run}${tag}.json"
+bench="${BENCH:-$HOME/bench}"     # override only for dry runs
+runs="${RUNS:-$repo/data/runs}"
+dest="$bench/t${task}-${run}${tag}"
+out="$runs/t${task}-${run}${tag}.json"
 
 tasks="$repo/${TASKS:-data/tasks.md}"
 prompt="$(awk -F' \\| ' -v t="| $task" '$1 == t { print $3 }' "$tasks")"
@@ -35,6 +38,7 @@ prompt="$(awk -F' \\| ' -v t="| $task" '$1 == t { print $3 }' "$tasks")"
 # otherwise make "no routing" runs spawn Sonnet subagents anyway.
 extra=()
 model=opus
+review=
 case "$run" in
   A) prompt="no routing. $prompt"; extra=(--disallowedTools Agent) ;;
   B) prompt="Use the model-router skill. $prompt" ;;
@@ -50,11 +54,14 @@ case "$run" in
   H) model=haiku; extra=(--disallowedTools Agent,Skill) ;;
   # S is F with Sonnet as the main model: Sonnet alone, no Opus and no subagents.
   S) model=sonnet; extra=(--disallowedTools Agent,Skill) ;;
-  *) echo "run must be A, B, C, D, E, F, H or S" >&2; exit 1 ;;
+  # R is H followed by a review: step 1 is exactly H, then a fresh Opus session (Agent and Skill
+  # blocked) in the same clone checks the work against the task and fixes it (data/tasks-v13.md).
+  R) model=haiku; extra=(--disallowedTools Agent,Skill); review=1 ;;
+  *) echo "run must be A, B, C, D, E, F, H, R or S" >&2; exit 1 ;;
 esac
 
 [ -e "$dest" ] && { echo "$dest already exists; remove it first" >&2; exit 1; }
-mkdir -p "$HOME/bench" "$repo/data/runs"
+mkdir -p "$bench" "$runs"
 git clone -q --no-hardlinks "$SRC" "$dest"
 git -C "$dest" remote remove origin
 
@@ -66,8 +73,9 @@ if [ -n "${VENV:-}" ]; then
   export PATH="$VENV/bin:$PATH" PYTHONPATH="$dest/master:$dest/worker"
 fi
 claude --version > "${out%.json}.version"
-claude -p "$prompt" --model "$model" --effort medium --permission-mode auto --output-format json "${extra[@]}" > "$out"
-python3 - "$out" <<'EOF'
+base="$(git rev-parse HEAD)"
+summary() {
+  python3 - "$1" <<'EOF'
 import json, sys
 d = json.load(open(sys.argv[1]))
 print(f"turns {d.get('num_turns')}  {d.get('duration_ms', 0) / 1000:.0f}s  "
@@ -75,6 +83,28 @@ print(f"turns {d.get('num_turns')}  {d.get('duration_ms', 0) / 1000:.0f}s  "
 for m, u in (d.get("modelUsage") or {}).items():
     print(f"  {m:<20} out {u['outputTokens']:>7,}")
 EOF
+}
+claude -p "$prompt" --model "$model" --effort medium --permission-mode auto --output-format json "${extra[@]}" > "$out"
+summary "$out"
+
+if [ -n "$review" ]; then
+  # Keep step 1's work as a patch (new files included) so it can also be scored on its own.
+  git add -A -N
+  git diff --binary "$base" > "${out%.json}-step1.patch"
+  git reset -q
+  answer="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("result") or "(no final answer)")' "$out")"
+  rprompt="Another session was given the task below and has finished working on it in this directory. It started from commit $base. Review its work: check its changes against that commit (git status, git diff $base) and its final answer, against what the task asks. Fix anything that is wrong or missing, then give your own final answer to the task.
+
+Task:
+$prompt
+
+The other session's final answer:
+$answer"
+  echo "== t${task}-${run}${tag} review step (opus)"
+  claude -p "$rprompt" --model opus --effort medium --permission-mode auto --output-format json \
+    --disallowedTools Agent,Skill > "${out%.json}-review.json"
+  summary "${out%.json}-review.json"
+fi
 
 # Long answers often land in the child session's scratchpad under /tmp, which a reboot wipes.
 # Keep a copy next to the run JSON.

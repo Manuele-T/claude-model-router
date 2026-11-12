@@ -13,6 +13,7 @@ data/*
 !data/tasks-v10.md
 !data/tasks-v11.md
 !data/tasks-v12.md
+!data/tasks-v13.md
 !data/results.md
 
 # Secrets
@@ -43,6 +44,7 @@ venv/
 # Private planning notes
 BUILD_PLAN.md
 PLAN_V2.md
+PLAN_V3.md
 
 # Draft social media posts
 posts/
