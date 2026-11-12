@@ -48,4 +48,4 @@ When editing the script, update `PRICES` against current Anthropic pricing rathe
 
 ## Data
 
-`data/` holds CSVs, `tasks.md` and `results.md` from benchmark runs. The CSVs and `data/runs/*.json` contain local file paths, so `.gitignore` ignores `data/*` except `.gitkeep`, the task files `tasks.md` and `tasks-v2.md` to `tasks-v9.md` (needed by `run_bench.sh`) and `results.md` — publish summary numbers only. The small private project's original prompts are in `data/private/` (gitignored); public files describe it only in generic terms, so re-scan them for identifying names before each commit.
+`data/` holds CSVs, `tasks.md` and `results.md` from benchmark runs. The CSVs and `data/runs/*.json` contain local file paths, so `.gitignore` ignores `data/*` except `.gitkeep`, the task files `tasks.md` and `tasks-v2.md` to `tasks-v12.md` (needed by `run_bench.sh`) and `results.md` — publish summary numbers only. The small private project's original prompts are in `data/private/` (gitignored); public files describe it only in generic terms, so re-scan them for identifying names before each commit.
