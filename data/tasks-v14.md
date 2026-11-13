@@ -49,3 +49,29 @@ The run helper gained an optional arm argument for this part (`v14_one_run.sh TA
 ```
 0fc29ee2184d10add2d165d75bd7d0bd2ac6f09c337538d31822a0972b33ab76  v14_one_run.sh (Part 1c)
 ```
+
+## Part 1d: does one dropped instruction explain the 57 flip? (added 2026-11-13, after Part 1c)
+
+Part 1c's blind scores: Opus alone flagged the "missing names" part in 0 of 5 new runs. Across all runs of 57, every Opus-led run from 2026-11-06 flagged it (8 of 8) and none from 2026-11-12 and 13 did (0 of 15), with the same Claude Code version (2.1.317), model ID, source commit and prompt.
+
+Claude Code records each API request in its transcripts, so I compared the first request of the v2 F runs with the Part 1c ones. Apart from paths, dates and IDs, five things differ:
+
+1. **Removed from Claude Code's system prompt:** "Before you start, tell the user in a sentence or two what you plan to do. While you work, give the user a short update alongside your next tool call whenever you start a major new part of the work, change your plan, or launch something slow."
+2. **Removed from the Bash tool's description:** a line telling the model to avoid `cat`, `head`, `tail`, `sed`, `awk` and `echo` in favour of the dedicated tools.
+3. **Added to the first message:** a paragraph saying that in auto mode the model may do much of its work through Bash.
+4. **Changed in my own global rules:** two lines of a style rule for social media posts, unrelated to coding.
+5. **Minor:** a kernel version and two more deferred tool names.
+
+1 to 3 come from Claude Code itself and changed without a version change. I can only control 1 cleanly.
+
+- **Arm G:** arm F plus `--append-system-prompt` with the removed instruction, word for word. It lands at the end of the same system-prompt block it used to sit in, one paragraph from its old position (checked on a one-line Haiku run before this design was committed). Everything else is as in Part 1c.
+- **Task 57 only, 5 runs, tags `r3` to `r7`.** Same source, prompt, hidden test and criteria.
+- **Scoring:** the 5 answers are shuffled with the 32 earlier answers to 57, labels removed, and scored blind by a fresh session against the same criteria.
+- **Reading the result, fixed now:** 3 or more of 5 flags means the instruction plausibly matters. 0 or 1 means it doesn't explain the flip on its own, and the cause stays open (differences 2 and 3 can't be undone from the command line). 2 of 5 is inconclusive.
+- **Weaknesses:** a change on the service side can't be ruled out. Differences 2 to 5 stay as they are now. 5 runs can only show a large effect.
+
+`scripts/run_bench.sh` gained arm G, and the run helper accepts G for task 57 only. New hashes:
+
+```
+d3716f15a58cb7647fbbe1a25b1f6192f9caf3adbf6c36846b76dd0483d6cfb1  v14_one_run.sh (Part 1d)
+```

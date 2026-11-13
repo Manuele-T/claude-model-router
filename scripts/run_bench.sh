@@ -10,6 +10,7 @@
 #   scripts/run_bench.sh 07 F    # run F: D with the Agent tool blocked too (tool-setup test)
 #   scripts/run_bench.sh 07 H    # run H: F with Haiku as the main model, no Opus at all
 #   scripts/run_bench.sh 07 S    # run S: F with Sonnet as the main model, no Opus at all
+#   scripts/run_bench.sh 57 G r1 # run G: F plus one system-prompt line Claude Code dropped (data/tasks-v14.md, Part 1d)
 #   scripts/run_bench.sh 07 R    # run R: H, then a fresh Opus session in the same clone reviews and fixes
 #   scripts/run_bench.sh 07 B v2 # optional tag: a repeat run in its own clone, ~/bench/t07-Bv2
 #   TASKS=data/tasks-v2.md scripts/run_bench.sh 11 A r1   # another task table
@@ -21,7 +22,7 @@
 set -euo pipefail
 
 task="${1:?task number, e.g. 07}"
-run="${2:?A, B, C, D, E, F, H, R or S}"
+run="${2:?A, B, C, D, E, F, G, H, R or S}"
 tag="${3:-}"
 SRC="${SRC:-$HOME/bench-src/small}"   # default: symlink to the private ~10k-line project
 repo="$(cd "$(dirname "$0")/.." && pwd)"
@@ -50,6 +51,9 @@ case "$run" in
   E) prompt="no routing. $prompt"; extra=(--disallowedTools Skill) ;;
   # F is D with the Agent tool blocked as well: tests whether losing subagents alone makes Opus more thorough.
   F) extra=(--disallowedTools Agent,Skill) ;;
+  # G is F plus one instruction that was in Claude Code's own system prompt on 2026-11-06 and gone by
+  # 2026-11-12 with the same version number (data/tasks-v14.md, Part 1d).
+  G) extra=(--disallowedTools Agent,Skill --append-system-prompt "Before you start, tell the user in a sentence or two what you plan to do. While you work, give the user a short update alongside your next tool call whenever you start a major new part of the work, change your plan, or launch something slow.") ;;
   # H is F with Haiku as the main model: Haiku alone, with no Opus briefing, reviewing or testing.
   H) model=haiku; extra=(--disallowedTools Agent,Skill) ;;
   # S is F with Sonnet as the main model: Sonnet alone, no Opus and no subagents.
@@ -57,7 +61,7 @@ case "$run" in
   # R is H followed by a review: step 1 is exactly H, then a fresh Opus session (Agent and Skill
   # blocked) in the same clone checks the work against the task and fixes it (data/tasks-v13.md).
   R) model=haiku; extra=(--disallowedTools Agent,Skill); review=1 ;;
-  *) echo "run must be A, B, C, D, E, F, H, R or S" >&2; exit 1 ;;
+  *) echo "run must be A, B, C, D, E, F, G, H, R or S" >&2; exit 1 ;;
 esac
 
 [ -e "$dest" ] && { echo "$dest already exists; remove it first" >&2; exit 1; }
