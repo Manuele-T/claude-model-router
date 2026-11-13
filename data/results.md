@@ -569,6 +569,8 @@ What Part 4 shows:
 
 **A flaw in my hidden test for 56.** The test data sets `results` on finished builds but leaves `complete_at` empty, unlike real finished builds. 6 of 8 runs lost the same 4 tests because they count a build only when both are set. I read the code of F r1 and confirmed this there. The other 5 failed the same 4 tests and passed the corrected test, which is consistent with the same cause, but I didn't read each one. The official scores stand. The corrected test is a second score, written after seeing the first failure, so it isn't pre-registered. Its only change is setting `complete_at`. My reference solution had the same blind spot, which is why validating against it didn't catch this. The official numbers shouldn't be read as a quality difference.
 
+*Correction (2026-11-13): the flag results for 57 below and in Parts 5 and 6 come from runs on 6 November only; see v3, Parts 1b and 1c.*
+
 **A flaw in my prompt for 57.** It says some `release` committers are missing from the blamelist. From reading the code, the planted bug adds wrong names but doesn't appear to lose any, though I haven't proven that. All 8 runs said they couldn't reproduce that part, and none claimed it was fixed. It may have cost them some extra investigation, equally across setups as far as I can tell.
 
 **Limits.** Two runs per setup and two tasks. The bug is planted rather than found in the wild, and its fix is a single line next to an unused `branch` argument, a strong hint once a run gets there. These tasks were written by Claude Opus after seeing that Haiku did well, and two hidden tests in this batch and the last had flaws that only runs exposed.
@@ -852,9 +854,50 @@ Design in `data/tasks-v13.md`, committed before any run. One new setup, **R**: s
 - **78:** the review found the bug Haiku missed in 2 of the 3 runs that missed one (`remaining()` not expiring old attempts, the same miss as in v2). Every R answer except one step-1 answer also found the unplanted temp-file problem in `save()`. One step-1 answer named bug (a) correctly but gave an example that bug (b) actually explains (so did one v2 Haiku answer). The review changed no files, as asked.
 - **Blind check of v2:** the fresh scorer's verdicts on the 18 v2 answers to 57 and 78 match the published v2 scores exactly, and its verdicts on the R answers match my unblinded first read.
 
+*Correction (2026-11-13): the 57 comparison below doesn't hold. With 15 more Opus-led runs, including Opus alone, no run from 12-13 November flagged the symptom. See Parts 1b and 1c.*
+
 **What Part 1 shows.** One Opus review of Haiku's work caught most of what Haiku left out (the release note, a missing index, a missed bug, a race), at about half the cost of Opus plus Haiku and 61% less than Opus alone. It didn't catch a wrong premise that Haiku had already explained away: on 57, Opus questioned the bug report only when it did the investigation itself. So a review recovers omissions, not judgement about the problem.
 
 **Limits.** Four tasks, chosen because Opus was already known to add something there, so this doesn't show what a review catches on tasks nobody has studied. The review prompt tells Opus to look for problems, which Opus alone never got. v2's comparison setups ran twice per task. Claude Opus wrote the tests and the criteria, and a fresh Opus session scored the answers; blinding was imperfect, because review answers read like reviews and some v2 answers mention their helpers. Command audit: every command stayed in the clone or `/tmp`, with no installs, network calls or `sudo`. Five commands were blocked by the permission checks (deleting temp files, writing to `/tmp`, dropping a git stash), and the leftover test logs in `/tmp` were deleted afterwards.
+
+## v3, Parts 1b and 1c: more runs of Opus plus Haiku and of Opus alone (2026-11-13)
+
+Design in `data/tasks-v14.md`, committed before each part ran. v2's comparison setups ran only twice per task, so Part 1 compared R's 5 runs with 2. **Part 1b** re-ran Opus plus Haiku (C), unchanged from v2, 5 more times on each of the four Part 1 tasks (tags r3 to r7, 20 runs, $6.72). **Part 1c** was added after Part 1b's result on 57: Opus alone (F), unchanged, 5 more times on task 57 only ($1.17). Same Claude Code version (2.1.317), model IDs, sources, prompts and hidden tests as v2 and Part 1. Answers to 57 and 78 were scored blind, shuffled with every earlier answer to the same task (Part 1b: 50 answers; Part 1c: 32 answers to 57), against the same criteria.
+
+### Cost and hidden tests
+
+| Task | C, Part 1b, $ per run (mean) | C, v2 (2 runs) | R, Part 1 | F, v2 (2 runs) | F, Part 1c |
+| --- | --- | --- | --- | --- | --- |
+| 56 Endpoint | 0.77 / 0.43 / 0.61 / 0.75 / 0.53 (0.62) | 0.93 | 0.46 | 1.16 | |
+| 57 Blamelists | 0.29 / 0.31 / 0.28 / 0.35 / 0.29 (0.30) | 0.43 | 0.17 | 0.79 | 0.34 / 0.29 / 0.19 / 0.20 / 0.15 (0.23) |
+| 65 Timeout | 0.26 / 0.25 / 0.23 / 0.22 / 0.19 (0.23) | 0.23 | 0.13 | 0.16 | |
+| 78 Review | 0.20 / 0.19 / 0.19 / 0.20 / 0.18 (0.19) | 0.22 | 0.11 | 0.12 | |
+| **Sum of means** | **1.34** | 1.81 | **0.86 (36% less than C, Part 1b)** | 2.23 | |
+
+- **Hidden tests:** every run passed the whole buildbot suite. 56: 13 of 13 on the corrected test in all 5 C runs, and 13 of 13 on the official one in 4 (r3: 9 of 13, the flaw described in Part 4). 57: 8 of 8 in all 10 runs. 65: 4 of 4 and the care test 2 of 2 in all 5.
+- **Subagents:** each C run used 1 to 3 Haiku subagents, with no mismatches or fallbacks. The F runs used none and wrote no routing-log lines.
+- **Cost:** C cost less per run than its two v2 runs on 56 and 57. Both v2 means came from 2 runs each, and these 5 runs vary by up to 1.8x on 56. F on 57 came out much cheaper than in v2 ($0.23 against $0.79): the new runs were short, 6 to 10 tool calls each.
+
+### Care
+
+| Point | C, Part 1b | C, v2 | R after the review | F, v2 | F, Part 1c |
+| --- | --- | --- | --- | --- | --- |
+| 56 Index with a migration | **5 of 5** | 2 of 2 | 5 of 5 | 2 of 2 | |
+| 57 Said it couldn't reproduce the "missing names" part | **0 of 5** | 2 of 2 | 0 of 5 | 2 of 2 | **0 of 5** |
+| 65 Release note | **5 of 5** | 2 of 2 | 5 of 5 | 2 of 2 | |
+| 78 Planted bugs found, of 3 | **3 in all 5** | 3, 3 | 3, 3, 3, 2, 3 | 3, 3 | |
+| 78 False alarms on the two decoys | 0 in all 5 | 0, 0 | 0 in all 5 | 0, 0 | |
+| 78 Found the unplanted temp-file problem | 5 of 5 | | 5 of 5 | | |
+
+- **56, 65, 78:** Opus plus Haiku matched or beat R on every point, with a small edge on 78 (all 3 bugs in 7 of 7 C runs, against 4 of 5 R reviews).
+- **57: the result depends on the day, not the setup.** All 32 answers fixed the bug. On the care point, every Opus-led run from 6 November said it couldn't reproduce the "missing names" part (8 of 8: F, C, B and D, 2 runs each). No run from 12-13 November said so (0 of 15 Opus-led: C r3 to r7, F r3 to r7 and the 5 R reviews), and neither did any run with no Opus (Haiku alone 0 of 7, Sonnet alone 0 of 2). All 10 Part 1b and 1c answers explain a way the bug could drop names instead ("the walk stopped early or skipped over their changes"). Claude Code version, model IDs, source commit and prompt were the same on both days. The starting context wasn't quite: on Opus alone, the first call was about 28,010 tokens on 6 November and 28,080 to 28,120 on 13 November. The runs load my global Claude Code setup (instructions, rules files, the skills list synced from claude.ai), and one of my global rules files changed on 7 November; Claude Code's own part of the context also differed slightly with the same version number. I can't tell whether that, a change on the service side, or chance explains the flip, though 8 of 8 then 0 of 15 is unlikely to be chance alone. Either way, this point can't rank the setups.
+- **Blind check:** the scorers' verdicts on the older answers matched the earlier scores exactly, in both packets.
+
+**Correction (2026-11-13), to v2 and to Part 1.** v2 (Parts 4 to 6) and Part 1 reported that every Opus-led run flagged the unreproducible symptom on 57, and read that as care Opus adds. With 15 more Opus-led runs, it holds only for the 8 runs from 6 November. The Part 1 reading that "Opus questioned the report only when it did the investigation itself" doesn't hold either: Opus alone did the whole investigation in Part 1c and didn't question it. The text of those parts is left as published, with this correction linked from the summaries.
+
+**What Parts 1b and 1c show.** With 5 runs per setup, Opus plus Haiku was the more reliable of the two cheaper setups on these four tasks: same hidden tests as R, every care point that can be scored, and every planted bug in all 5 reviews. R cost 36% less. Opus alone on 57 was cheaper than in v2 and no more careful than anything else. The only care point that seemed to separate Opus from Haiku in v2 on these tasks now looks like noise between days, and the points that remain (index, release note, third bug) are ones a single Opus review mostly recovers.
+
+**Limits.** Still four tasks, chosen because Opus added something there in v2. Part 1c was added after seeing Part 1b, and only on task 57. If behaviour can shift between days, any two-run comparison in v2 may carry the same problem: all 10 v2 runs of 57 ran on 6 November, and I haven't checked the other tasks. Claude Opus wrote the tests and the criteria, and fresh Opus sessions scored the answers. Command audit for both parts: every command stayed in the clone, with no installs, network calls or `sudo`. Commands flagged by the audit were git stash and checkout steps inside the clone, used to check that a new test failed without the fix, and each run's final state was intact. Four test logs left in `/tmp` by Part 1b were deleted.
 
 ## What I'm working on next
 

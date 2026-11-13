@@ -26,7 +26,7 @@ This repo is an experiment to find out. It has two parts:
 
 - **Coding:** every setup produced working code. On five harder tasks, Haiku alone cost 94% less than Opus alone.
 - **Big reviews:** on an 85-page docs check, Opus plus Haiku cost half as much as Opus alone and found over 60% more real errors. It also found about 30% more than Haiku alone at the same price.
-- **What Opus adds is care:** all 8 Opus-led runs added a speed index when asked for speed and flagged a symptom they couldn't reproduce. Neither Haiku-alone run did either.
+- **What Opus adds is care:** all 8 Opus-led runs added a speed index when asked for speed and flagged a symptom they couldn't reproduce. Neither Haiku-alone run did either. *(Correction: the flag didn't hold up in 15 later Opus-led runs; see v3.)*
 - **Sonnet alone** cost 70% less than Opus alone on the five harder tasks, but 5 times Haiku alone, and landed between them on care.
 - **I tried to make the cheap models fail, and mostly couldn't.** Across those 16 short tasks, there was one real hidden-test miss in 128 runs, and Haiku alone cost about 5% of Opus alone. Opus was more thorough, finding every planted bug in a code review where Haiku found 2 of 3, but it wasn't better across the board: on a timing bug, all 4 Opus-led runs failed and the only pass was Haiku.
 - **My routing skill rarely paid off**, and left alone, Opus never delegated.
@@ -35,11 +35,12 @@ This repo is an experiment to find out. It has two parts:
 
 ### v3: Haiku with an Opus review, and why splitting work helps (work in progress)
 
-Part 1 of 3 is done: Haiku does a coding task, then a fresh Opus session reviews it once. 20 runs on the four buildbot tasks where Opus added care in v2.
+Part 1 of 3 is done: Haiku does a coding task, then a fresh Opus session reviews it once. 20 runs on the four buildbot tasks where Opus added care in v2, plus 25 more runs giving Opus plus Haiku and Opus alone 5 runs each to compare with.
 
 - **It cost 61% less than Opus alone** and 52% less than Opus plus Haiku, with every hidden test passing.
 - **The review caught what Haiku left out:** a release note, a missing index, a missed bug, a race condition.
-- **It didn't question a wrong premise.** Every Opus-led run in v2 flagged a symptom it couldn't reproduce. Haiku explained it away, and all 5 reviews agreed.
+- **With 5 runs each, Opus plus Haiku was a little more reliable** (every planted bug in every review) and cost about 1.5x as much as the review setup.
+- **A v2 finding didn't hold.** Every Opus-led run in v2 flagged a symptom it couldn't reproduce. None of 15 later Opus-led runs did, Opus alone included, with the same prompt and model. It changed with the day, not the setup.
 
 Parts 2 and 3, on how splitting a big review across subagents helps, haven't run yet, so these findings may change.
 
