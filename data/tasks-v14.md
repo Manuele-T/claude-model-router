@@ -33,3 +33,19 @@ As in `data/tasks-v13.md`, plus:
 ```
 080dce133dc3aa9cb0a1baaf9c1d2c3753269b0ae306cba6760bbc8c4b59b129  v14_one_run.sh
 ```
+
+## Part 1c: Opus alone, five more runs on task 57 (added 2026-11-13, after Part 1b)
+
+Part 1b's blind scores changed a v2 finding. In v2, all 8 Opus-led runs on task 57 said they couldn't reproduce the "missing names" part of the bug report. In Part 1b, Opus orchestrator + Haiku did it in 0 of 5 new runs. In each of those runs a Haiku helper searched the code and Opus accepted its explanation. Opus alone also ran only twice on 57 in v2, so this part checks whether Opus doing the investigation itself flags the symptom reliably.
+
+**Added after Part 1b's results were seen.** Committed before any of its runs.
+
+- **Arm F, unchanged from v2** (Opus alone: no prefix, Agent and Skill blocked). Task 57 only, same source, prompt, hidden test and criteria. 5 runs, tags `r3` to `r7`. Same Claude Code version and settings as Part 1b.
+- **Scoring:** the 5 answers are shuffled with the other 27 answers to 57, labels removed, and scored blind by a fresh session against the same criteria. Hidden test and suite as before.
+- **Weakness:** the question was picked knowing the result it might overturn.
+
+The run helper gained an optional arm argument for this part (`v14_one_run.sh TASK TAG [ARM]`, with F allowed only for task 57). Part 1b ran with the version whose hash is listed above. The new version:
+
+```
+0fc29ee2184d10add2d165d75bd7d0bd2ac6f09c337538d31822a0972b33ab76  v14_one_run.sh (Part 1c)
+```
