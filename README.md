@@ -7,7 +7,7 @@ This repo is an experiment to find out. It has two parts:
 - **A Claude Code skill** (`skills/model-router/SKILL.md`) that makes Opus the manager, handing work to cheaper subagents and logging every decision.
 - **A Python checker** (`scripts/verify_models.py`) that reads Claude Code's own transcripts to prove which model actually ran and how many tokens each one used.
 
-## The two experiments
+## The experiments
 
 ### v1: reading code
 
@@ -32,6 +32,18 @@ This repo is an experiment to find out. It has two parts:
 - **My routing skill rarely paid off**, and left alone, Opus never delegated.
 
 **[Read the v2.0 results and discussion](docs/v2-results.md)**
+
+### v3: Haiku with an Opus review, and why splitting work helps (work in progress)
+
+Part 1 of 3 is done: Haiku does a coding task, then a fresh Opus session reviews it once. 20 runs on the four buildbot tasks where Opus added care in v2.
+
+- **It cost 61% less than Opus alone** and 52% less than Opus plus Haiku, with every hidden test passing.
+- **The review caught what Haiku left out:** a release note, a missing index, a missed bug, a race condition.
+- **It didn't question a wrong premise.** Every Opus-led run in v2 flagged a symptom it couldn't reproduce. Haiku explained it away, and all 5 reviews agreed.
+
+Parts 2 and 3, on how splitting a big review across subagents helps, haven't run yet, so these findings may change.
+
+**[Read the v3 results so far](docs/v3-results.md)**
 
 ## What I'd use today
 

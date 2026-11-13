@@ -818,6 +818,44 @@ Each project's whole suite passed in every run, once after a re-run (72 F r1: on
 
 **Limits.** Two runs per setup. Claude Opus wrote the tasks and tests after seeing Part 7, and scored the answers. Blinding was imperfect: a few answers mention their helpers or their own run's folder, and two task 71 answers had been read before blinding. Scores for 72, 73 and 75 rest on one test design each, and 7 of 8 failures on 75 could partly reflect that design. Tasks stayed short.
 
+## v3, Part 1: Haiku does the work, Opus reviews it once (tasks 56, 57, 65, 78; 2026-11-12)
+
+Design in `data/tasks-v13.md`, committed before any run. One new setup, **R**: step 1 is exactly Haiku alone (H). Step 2 is a fresh Opus session in the same folder, told that another session did the task and asked to check its changes and answer against the task, fix anything wrong or missing, and give its own final answer. Both steps have subagents and skills blocked. The four tasks are the v2 coding tasks where Opus added care that the hidden tests didn't see: tasks, prompts, sources and hidden tests are unchanged. 5 runs per task, 20 runs, Claude Code 2.1.317 (the same version as v2), $4.31 in total at API prices. Step 1's changes were saved and scored on their own, so step 1 also gives Haiku alone 5 more runs per task. Answers to 57 and 78 were scored blind by a fresh session, shuffled together with every v2 answer to the same tasks (40 answers), against criteria fixed in v2.
+
+### Cost and hidden tests
+
+| Task | R $ per run (mean) | v2 Opus alone (F) | v2 Opus plus Haiku (C) | v2 Haiku alone (H) |
+| --- | --- | --- | --- | --- |
+| 56 Endpoint, fast on millions of builds | 0.60 / 0.27 / 0.38 / 0.39 / 0.64 (0.46) | 1.16 | 0.93 | 0.14 |
+| 57 Wrong blamelists across branches | 0.26 / 0.18 / 0.13 / 0.14 / 0.14 (0.17) | 0.79 | 0.43 | 0.01 |
+| 65 Change a default timeout | 0.12 / 0.11 / 0.12 / 0.16 / 0.12 (0.13) | 0.16 | 0.23 | 0.01 |
+| 78 Review a commit with planted bugs | 0.12 / 0.10 / 0.11 / 0.11 / 0.11 (0.11) | 0.12 | 0.22 | under 0.01 |
+| **Sum of means** | **0.86** | **2.23 (R is -61%)** | **1.81 (R is -52%)** | **about 0.17 (R is about 5x)** |
+
+- **The review is most of the bill.** By Claude Code's own per-session estimate, the Opus step was about 85% of R's cost: 76% on 56 and 93-96% on the three smaller tasks. On 78 R cost about the same as Opus alone, because Opus alone was already cheap there.
+- **Hidden tests:** every run passed every hidden test and the whole buildbot suite, both after step 1 and after the review (56: 9 of 13 on the official test, whose flaw is described in Part 4, and 13 of 13 on the corrected one). The review broke nothing.
+- **Wall time:** about 2.9 minutes per run on average, with the review about a third to half of it (56: 3.7 min of Haiku plus 1.7 of Opus).
+
+### Care
+
+| Point | R after step 1 (Haiku alone) | R after the review | v2 F | v2 C | v2 S | v2 H |
+| --- | --- | --- | --- | --- | --- | --- |
+| 56 Index with a migration | 4 of 5 (see below) | **5 of 5** | 2 of 2 | 2 of 2 | 2 of 2 | 0 of 2 |
+| **57 Said it couldn't reproduce the "missing names" part** | **0 of 5** | **0 of 5** | 2 of 2 | 2 of 2 | 0 of 2 | 0 of 2 |
+| 65 Release note (care test 2 of 2) | 0 of 5 | **5 of 5** | 2 of 2 | 2 of 2 | 0 of 2 | 0 of 2 |
+| 78 Planted bugs found, of 3 | 3, 2, 2, 2, 3 | 3, 3, 3, 2, 3 | 3, 3 | 3, 3 | 3, 2 | 2, 2 |
+| 78 False alarms on the two decoys | 0 in all 5 | 0 in all 5 | 0, 0 | 0, 0 | 0, 0 | 0, 0 |
+
+- **56:** after step 1, three runs had an index with a migration. One (r5) built a table of counts kept up to date as builds finish, with a migration that fills it from existing builds; the blind scorer judged that it meets the point. One (r4) had neither, though its answer said an index would help. The review added the index, migration and a migration test to r4. On r5 it found and fixed a real race: two builds finishing at the same time could both try to create the same counts row, and one would fail. The blind scorer found the same race independently. Haiku alone did better here than in v2 (4 of 5 against 0 of 2), so v2's two runs understated it.
+- **57: the review made no difference.** Every Haiku answer explained a way the bug could drop names, and every review accepted that explanation and repeated it. All 8 Opus-led v2 runs (F, C, B and D) said they couldn't reproduce that part, and 4 of them backed it with a simulation. Opus leading the work found it; Opus reviewing Haiku's work didn't. On the release note, one review added it where Haiku had none, one fixed an invented issue link in Haiku's, and two left it out after Haiku said it needed an issue number.
+- **65:** the review added the release note in all 5 runs, which no Haiku-alone or Sonnet-alone run did.
+- **78:** the review found the bug Haiku missed in 2 of the 3 runs that missed one (`remaining()` not expiring old attempts, the same miss as in v2). Every R answer except one step-1 answer also found the unplanted temp-file problem in `save()`. One step-1 answer named bug (a) correctly but gave an example that bug (b) actually explains (so did one v2 Haiku answer). The review changed no files, as asked.
+- **Blind check of v2:** the fresh scorer's verdicts on the 18 v2 answers to 57 and 78 match the published v2 scores exactly, and its verdicts on the R answers match my unblinded first read.
+
+**What Part 1 shows.** One Opus review of Haiku's work caught most of what Haiku left out (the release note, a missing index, a missed bug, a race), at about half the cost of Opus plus Haiku and 61% less than Opus alone. It didn't catch a wrong premise that Haiku had already explained away: on 57, Opus questioned the bug report only when it did the investigation itself. So a review recovers omissions, not judgement about the problem.
+
+**Limits.** Four tasks, chosen because Opus was already known to add something there, so this doesn't show what a review catches on tasks nobody has studied. The review prompt tells Opus to look for problems, which Opus alone never got. v2's comparison setups ran twice per task. Claude Opus wrote the tests and the criteria, and a fresh Opus session scored the answers; blinding was imperfect, because review answers read like reviews and some v2 answers mention their helpers. Command audit: every command stayed in the clone or `/tmp`, with no installs, network calls or `sudo`. Five commands were blocked by the permission checks (deleting temp files, writing to `/tmp`, dropping a git stash), and the leftover test logs in `/tmp` were deleted afterwards.
+
 ## What I'm working on next
 
 I wanted a skill where Opus picks the best setup for each task, including Haiku with no Opus at all. So far, I was able to see that the skill can definitely spawn a Haiku subagent to do the job, but cannot completely switch the session to Haiku, at least on Claude Code 2.1.317.
