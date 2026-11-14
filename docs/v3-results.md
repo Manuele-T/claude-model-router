@@ -73,5 +73,5 @@ Part 1 compared 5 runs of the review setup with v2's 2 runs per setup. So I re-r
 
 ## Still to come
 
-- **Part 2:** the 85-page docs check with exactly 1, 4, 8 and 16 Haiku subagents, 5 runs each, scored against a re-verified list of real errors.
+- **Part 2 (under way):** the 85-page docs check with exactly 1, 4, 8 and 16 Haiku subagents, and Haiku + Opus checker, 5 runs each, scored blind against a re-verified list of real errors. [Design committed](../data/tasks-v15.md) before the first run. Runs are spread over at least three days, after the day effect above. 10 of 25 runs are done; results will be published once all 25 are in.
 - **Part 3:** the same split with Opus subagents, to separate "Haiku is good enough" from "splitting the work is what helps".
