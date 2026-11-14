@@ -890,7 +890,7 @@ Design in `data/tasks-v14.md`, committed before each part ran. v2's comparison s
 | 78 Found the unplanted temp-file problem | 5 of 5 | | 5 of 5 | | |
 
 - **56, 65, 78:** Opus plus Haiku matched or beat R on every point, with a small edge on 78 (all 3 bugs in 7 of 7 C runs, against 4 of 5 R reviews).
-- **57: the result depends on the day, not the setup.** All 32 answers fixed the bug. On the care point, every Opus-led run from 6 November said it couldn't reproduce the "missing names" part (8 of 8: F, C, B and D, 2 runs each). No run from 12-13 November said so (0 of 15 Opus-led: C r3 to r7, F r3 to r7 and the 5 R reviews), and neither did any run with no Opus (Haiku alone 0 of 7, Sonnet alone 0 of 2). All 10 Part 1b and 1c answers explain a way the bug could drop names instead ("the walk stopped early or skipped over their changes"). Claude Code version, model IDs, source commit and prompt were the same on both days. The starting context wasn't quite: on Opus alone, the first call was about 28,010 tokens on 6 November and 28,080 to 28,120 on 13 November. The runs load my global Claude Code setup (instructions, rules files, the skills list synced from claude.ai), and one of my global rules files changed on 7 November; Claude Code's own part of the context also differed slightly with the same version number. I can't tell whether that, a change on the service side, or chance explains the flip, though 8 of 8 then 0 of 15 is unlikely to be chance alone. Either way, this point can't rank the setups.
+- **57: the result depends on the day, not the setup.** All 32 answers fixed the bug. On the care point, every Opus-led run from 6 November said it couldn't reproduce the "missing names" part (8 of 8: F, C, B and D, 2 runs each). No run from 12-13 November said so (0 of 15 Opus-led: C r3 to r7, F r3 to r7 and the 5 R reviews), and neither did any run with no Opus (Haiku alone 0 of 7, Sonnet alone 0 of 2). All 10 Part 1b and 1c answers explain a way the bug could drop names instead ("the walk stopped early or skipped over their changes"). Claude Code version, model IDs, source commit and prompt were the same on both days. The starting context wasn't quite: on Opus alone, the first call was about 28,010 tokens on 6 November and 28,080 to 28,120 on 13 November. The runs load my global Claude Code setup (instructions, rules files, the skills list synced from claude.ai), and one of my global rules files changed on 7 November; Claude Code's own part of the context also differed slightly with the same version number. Part 1d tested the one difference I could undo; it wasn't the cause. Either way, this point can't rank the setups.
 - **Blind check:** the scorers' verdicts on the older answers matched the earlier scores exactly, in both packets.
 
 **Correction (2026-11-13), to v2 and to Part 1.** v2 (Parts 4 to 6) and Part 1 reported that every Opus-led run flagged the unreproducible symptom on 57, and read that as care Opus adds. With 15 more Opus-led runs, it holds only for the 8 runs from 6 November. The Part 1 reading that "Opus questioned the report only when it did the investigation itself" doesn't hold either: Opus alone did the whole investigation in Part 1c and didn't question it. The text of those parts is left as published, with this correction linked from the summaries.
@@ -898,6 +898,29 @@ Design in `data/tasks-v14.md`, committed before each part ran. v2's comparison s
 **What Parts 1b and 1c show.** With 5 runs per setup, Opus plus Haiku was the more reliable of the two cheaper setups on these four tasks: same hidden tests as R, every care point that can be scored, and every planted bug in all 5 reviews. R cost 36% less. Opus alone on 57 was cheaper than in v2 and no more careful than anything else. The only care point that seemed to separate Opus from Haiku in v2 on these tasks now looks like noise between days, and the points that remain (index, release note, third bug) are ones a single Opus review mostly recovers.
 
 **Limits.** Still four tasks, chosen because Opus added something there in v2. Part 1c was added after seeing Part 1b, and only on task 57. If behaviour can shift between days, any two-run comparison in v2 may carry the same problem: all 10 v2 runs of 57 ran on 6 November, and I haven't checked the other tasks. Claude Opus wrote the tests and the criteria, and fresh Opus sessions scored the answers. Command audit for both parts: every command stayed in the clone, with no installs, network calls or `sudo`. Commands flagged by the audit were git stash and checkout steps inside the clone, used to check that a new test failed without the fix, and each run's final state was intact. Four test logs left in `/tmp` by Part 1b were deleted.
+
+### Part 1d: does one dropped instruction explain the flip? (2026-11-13; scored 2026-11-14)
+
+Design added to `data/tasks-v14.md` after Part 1c's result and committed before any run. Claude Code saves each API request in its transcripts, so I compared the first request of the 6 November runs of Opus alone with the 13 November ones. Apart from paths, dates and IDs, five things differ:
+
+1. Claude Code's system prompt lost an instruction: "Before you start, tell the user in a sentence or two what you plan to do. While you work, give the user a short update [...]".
+2. The Bash tool's description lost a line telling the model to avoid `cat`, `sed` and similar commands.
+3. The first message gained a paragraph saying that in auto mode the model may do much of its work through Bash.
+4. Two lines of one of my global rules files changed (a style rule for social media posts, unrelated to coding).
+5. A kernel version and two more deferred tool names.
+
+1 to 3 come from Claude Code and changed with the same version number (2.1.317). Only 1 can be put back from the command line, so **arm G** is Opus alone (F) plus `--append-system-prompt` with that instruction word for word. A one-line Haiku run confirmed it lands in the same system-prompt block as before, and each G run's recorded request was checked to contain it. Task 57, 5 runs, $1.15 in total; answers shuffled with the 32 earlier ones and scored blind. The reading was fixed in the design: 3 or more flags means the instruction plausibly matters, 0 or 1 means it doesn't explain the flip on its own.
+
+| | Runs | Cost per run | Suite and hidden test | Said it couldn't reproduce the "missing names" part |
+| --- | --- | --- | --- | --- |
+| G, Opus alone plus the instruction | r3 to r7 | 0.32 / 0.20 / 0.20 / 0.20 / 0.23 | pass, 8 of 8, in all 5 | **0 of 5** |
+
+- **The instruction isn't the cause on its own.** All 5 G answers fixed the bug and all 5 explained a way the walk could drop names, like every other run since 12 November.
+- **What's left:** differences 2 and 3 above, which can't be undone from the command line; a change on the service side that the transcripts can't show; or a lucky batch on 6 November, which 8 of 8 then 0 of 20 makes unlikely.
+- **Blind check:** the scorer's verdicts on the 32 earlier answers matched the earlier scores exactly.
+- **Audit:** every command stayed in the clone, with no installs, network calls or `sudo`, and no files left in `/tmp`. Flagged commands were git stash steps used to check that the new test fails without the fix; r7 briefly reverted its fix that way and put it back, and its final diff has it.
+
+**What Part 1d shows.** On this task, Claude Code's behaviour changed between two days with the same version number and model ID, and the one change I could undo didn't bring the old behaviour back. For benchmarking, that means a batch of runs on one day may not represent a setup, so later parts spread each setup's runs across days.
 
 ## What I'm working on next
 

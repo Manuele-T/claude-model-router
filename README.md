@@ -40,7 +40,7 @@ Part 1 of 3 is done: Haiku does a coding task, then a fresh Opus session reviews
 - **It cost 61% less than Opus alone** and 52% less than Opus plus Haiku, with every hidden test passing.
 - **The review caught what Haiku left out:** a release note, a missing index, a missed bug, a race condition.
 - **With 5 runs each, Opus plus Haiku was a little more reliable** (every planted bug in every review) and cost about 1.5x as much as the review setup.
-- **A v2 finding didn't hold.** Every Opus-led run in v2 flagged a symptom it couldn't reproduce. None of 15 later Opus-led runs did, Opus alone included, with the same prompt and model. It changed with the day, not the setup.
+- **A v2 finding didn't hold.** Every Opus-led run in v2 flagged a symptom it couldn't reproduce. None of 15 later Opus-led runs did, Opus alone included, with the same prompt and model. It changed with the day, not the setup, and restoring the one Claude Code instruction that had changed in between didn't bring it back.
 
 Parts 2 and 3, on how splitting a big review across subagents helps, haven't run yet, so these findings may change.
 

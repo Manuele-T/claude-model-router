@@ -55,7 +55,8 @@ Part 1 compared 5 runs of the review setup with v2's 2 runs per setup. So I re-r
 
 - **Opus plus Haiku was the more reliable of the two.** Every hidden test passed. It added the index and the release note in all 5 runs and found all 3 planted bugs in all 5 reviews, against 4 of 5 for the review setup.
 - **The review setup stayed 36% cheaper.** On these tasks the gap in care was one missed bug in 5 reviews.
-- **The "couldn't reproduce" flag depends on the day, not the setup.** All 8 Opus-led runs from 6 November said it. None of the 15 Opus-led runs from 12-13 November did, including 5 runs of Opus alone doing the whole investigation itself. Same Claude Code version, model, code and prompt, though the starting context differed by about 100 tokens (the runs load my global Claude Code setup, which changed slightly in between). I can't tell whether that, a change on the service side, or chance explains it, so this point no longer counts as evidence for any setup.
+- **The "couldn't reproduce" flag depends on the day, not the setup.** All 8 Opus-led runs from 6 November said it. None of the 15 Opus-led runs from 12-13 November did, including 5 runs of Opus alone doing the whole investigation itself. Same Claude Code version, model, code and prompt, though the starting context differed by about 100 tokens (the runs load my global Claude Code setup, which changed slightly in between). So this point no longer counts as evidence for any setup.
+- **The cause is still unknown.** Comparing the requests saved in the transcripts, Claude Code's own instructions changed between the two days with the same version number. I put back the one change I could, an instruction to tell the user the plan and give updates, in 5 more runs of Opus alone (Part 1d). None flagged the symptom, so that instruction isn't the cause on its own. What's left is two other changes in Claude Code's instructions, a change on Anthropic's side, or a lucky batch.
 
 **Correction (2026-11-13).** v2 and Part 1 read that flag as care Opus adds, and Part 1 said Opus questioned the report only when it led the investigation. Neither holds with more runs. The [v2 results](v2-results.md) carry a note pointing here.
 
@@ -66,7 +67,7 @@ Part 1 compared 5 runs of the review setup with v2's 2 runs per setup. So I re-r
 - Four tasks, chosen because Opus was already known to add something there. This doesn't show what a review catches on tasks nobody has studied.
 - The review prompt tells Opus to look for problems, which Opus alone never got. A fair reading is "Opus reviewing Haiku's work", not "Haiku plus a review is as careful as Opus alone".
 - v2's comparison setups ran twice per task. Parts 1b and 1c added 5 runs for Opus plus Haiku on all four tasks and for Opus alone on one, but Opus alone still has only 2 runs on the other three.
-- Results can shift between days with almost nothing visible changing (Part 1c), so a batch run on one day may not represent the setup.
+- Results can shift between days with the same Claude Code version (Parts 1c and 1d), so a batch run on one day may not represent the setup. Later parts spread each setup's runs across days.
 - Claude Opus wrote the tests and the criteria, and a fresh Opus session scored the answers. Blinding was imperfect: review answers read like reviews, and some v2 answers mention their helpers.
 - Costs use API list prices as a proxy for subscription usage.
 

@@ -12,6 +12,8 @@
 #   scripts/run_bench.sh 07 S    # run S: F with Sonnet as the main model, no Opus at all
 #   scripts/run_bench.sh 57 G r1 # run G: F plus one system-prompt line Claude Code dropped (data/tasks-v14.md, Part 1d)
 #   scripts/run_bench.sh 07 R    # run R: H, then a fresh Opus session in the same clone reviews and fixes
+#   scripts/run_bench.sh 43 C8 r1 # run C<N>: C with the pages split into N fixed groups, one Haiku subagent each (data/tasks-v15.md)
+#   scripts/run_bench.sh 43 O8 r1 # run O<N>: the same split with Opus subagents (data/tasks-v15.md)
 #   scripts/run_bench.sh 07 B v2 # optional tag: a repeat run in its own clone, ~/bench/t07-Bv2
 #   TASKS=data/tasks-v2.md scripts/run_bench.sh 11 A r1   # another task table
 #
@@ -22,7 +24,7 @@
 set -euo pipefail
 
 task="${1:?task number, e.g. 07}"
-run="${2:?A, B, C, D, E, F, G, H, R or S}"
+run="${2:?A, B, C, D, E, F, G, H, R, S, C<N> or O<N>}"
 tag="${3:-}"
 SRC="${SRC:-$HOME/bench-src/small}"   # default: symlink to the private ~10k-line project
 repo="$(cd "$(dirname "$0")/.." && pwd)"
@@ -61,7 +63,39 @@ case "$run" in
   # R is H followed by a review: step 1 is exactly H, then a fresh Opus session (Agent and Skill
   # blocked) in the same clone checks the work against the task and fixes it (data/tasks-v13.md).
   R) model=haiku; extra=(--disallowedTools Agent,Skill); review=1 ;;
-  *) echo "run must be A, B, C, D, E, F, G, H, R or S" >&2; exit 1 ;;
+  # C<N> and O<N> (v3 Parts 2 and 3, data/tasks-v15.md): the skill with a tier override, plus a fixed
+  # split of the pages into N groups read from data/splits-v15.txt, one subagent per group.
+  C[0-9]*|O[0-9]*)
+    n="${run:1}"; tier=haiku; [ "${run:0:1}" = O ] && tier=opus
+    split="$(python3 - "$repo/data/splits-v15.txt" "$n" "$tier" <<'EOF'
+import sys
+path, n, tier = sys.argv[1], sys.argv[2], sys.argv[3].capitalize()
+groups = {}
+for line in open(path):
+    if line.startswith("#") or not line.strip():
+        continue
+    k, g, page = line.rstrip("\n").split("\t")
+    if k == n:
+        groups.setdefault(int(g), []).append(page)
+if not groups:
+    sys.exit(f"no groups for N={n} in {path}")
+if len(groups) == 1:
+    head = f"Split this task by page: use exactly 1 {tier} subagent for the group of pages below, and no other subagents."
+else:
+    head = (f"Split this task by page: use exactly {len(groups)} {tier} subagents, one for each group of pages below, "
+            "and no other subagents.")
+lines = [head + " Give each subagent only its own group's pages: it checks their claims against the code and reports "
+         "each claim that is wrong or out of date, with the doc file and line. Then check and merge their findings "
+         "yourself and give the final report."]
+for g in sorted(groups):
+    lines.append(f"Group {g}: " + ", ".join(groups[g]))
+print("\n".join(lines))
+EOF
+)" || exit 1
+    prompt="Use the model-router skill. use $tier. $split
+
+Task: $prompt" ;;
+  *) echo "run must be A, B, C, D, E, F, G, H, R, S, C<N> or O<N>" >&2; exit 1 ;;
 esac
 
 [ -e "$dest" ] && { echo "$dest already exists; remove it first" >&2; exit 1; }
