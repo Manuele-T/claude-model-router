@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Claude Code skill experiment: Opus orchestrates and routes subagents to Haiku/Sonnet/Opus (`skills/model-router/SKILL.md`), and a standalone Python checker (`scripts/verify_models.py`) reads Claude Code's own transcripts to confirm which model actually ran and to total tokens per model. `BUILD_PLAN.md` (local only, gitignored) is the original plan for phases, the 10-task benchmark, and troubleshooting; read it before changing scope if it exists. It assumes the repo lives at `~/claude-model-router`; it actually lives at `~/Documents/Coding/claude-model-router`. `README.md` is a short recap; results and discussion live in `docs/v1-results.md`, `docs/v2-results.md` and `data/results.md`.
 
+## Handover files (keep them current)
+
+`recap/brief-task-explainer.md` (start here: what to run next and how) and `recap/recap.md` (full history) are the local, gitignored handover for new sessions. After each finished task (a round of runs, a judging batch, a write-up, a design, a change to how things are run), update both before reporting the task done, without being asked: status, results, next steps and any new rule or file.
+
+## Private small project rules
+
+Follow the rules in `recap/brief-task-explainer.md` (section 8) for anything that mentions the private small project.
+
 ## Commands
 
 No build, lint or test suite. The checker is stdlib-only Python 3.8+:
