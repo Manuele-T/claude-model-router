@@ -8,7 +8,7 @@ A Claude Code skill experiment: Opus orchestrates and routes subagents to Haiku/
 
 ## Handover files (keep them current)
 
-`recap/brief-task-explainer.md` (start here: what to run next and how) and `recap/recap.md` (full history) are the local, gitignored handover for new sessions. After each finished task (a round of runs, a judging batch, a write-up, a design, a change to how things are run), update both before reporting the task done, without being asked: status, results, next steps and any new rule or file.
+`recap/brief-task-explainer.md` (start here: what to run next and how) and `recap/recap.md` (full history) are the local, gitignored handover for new sessions. After each finished task (a round of runs, a judging batch, a write-up, a design, a change to how things are run), update both before reporting the task done, without being asked: status, results, next steps and any new rule or file. Also add a short entry at the top of `recap/partial-findings.md` (gitignored, findings at a glance): what the task showed in plain words, marked provisional until published.
 
 ## Private small project rules
 
