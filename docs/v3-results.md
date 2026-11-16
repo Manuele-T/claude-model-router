@@ -2,12 +2,12 @@
 
 [Back to the README](../README.md) · [v1.0 results](v1-results.md) · [v2.0 results](v2-results.md)
 
-**Work in progress.** v3 has three parts and only Part 1 has run so far, plus two follow-ups (1b and 1c) that gave the comparison setups 5 runs each. The numbers below are final for Part 1, but the conclusions may change once Parts 2 and 3 are in.
+**Work in progress.** v3 has three parts. Part 1 is written up below, with follow-ups 1b and 1c that gave the comparison setups 5 runs each, and 1d. Part 2 has run and been scored blind, and will be written up soon. Part 3 hasn't run yet. The numbers below are final for Part 1, but the conclusions may change once Parts 2 and 3 are in.
 
 **The questions:**
 
 1. **Haiku then an Opus review:** if Haiku alone does a coding task and a fresh Opus session reviews it once, does that get back the care Opus added in v2, at close to Haiku's cost? *(Part 1, with 1b and 1c, done)*
-2. **Coverage:** on the 85-page docs check where Opus plus Haiku found the most, how do errors found and cost change with the number of Haiku subagents? *(Part 2, not run yet)*
+2. **Coverage:** on the 85-page docs check where Opus plus Haiku found the most, how do errors found and cost change with the number of Haiku subagents? *(Part 2, all 25 runs done and scored blind, write-up to come)*
 3. **Cheap model or split:** with the same split, do Opus subagents find clearly more than Haiku subagents, and at what cost? *(Part 3, not run yet)*
 
 Costs are API list prices used as a proxy for subscription usage. Per-run numbers and scoring rules are in [`data/results.md`](../data/results.md).
@@ -73,5 +73,5 @@ Part 1 compared 5 runs of the review setup with v2's 2 runs per setup. So I re-r
 
 ## Still to come
 
-- **Part 2 (under way):** the 85-page docs check with exactly 1, 4, 8 and 16 Haiku subagents, and Haiku + Opus checker, 5 runs each, scored blind against a re-verified list of real errors. [Design committed](../data/tasks-v15.md) before the first run. Runs are spread over at least three days, after the day effect above. 10 of 25 runs are done; results will be published once all 25 are in.
-- **Part 3:** the same split with Opus subagents, to separate "Haiku is good enough" from "splitting the work is what helps".
+- **Part 2 (done, write-up to come):** the 85-page docs check with exactly 1, 4, 8 and 16 Haiku subagents, and Haiku + Opus checker, 5 runs each, scored blind against a re-verified list of real errors. [Design committed](../data/tasks-v15.md) before the first run. The runs were spread over three days, after the day effect above. All 25 are done and scored; results will be published with the write-up.
+- **Part 3:** the same split with Opus subagents, to separate "Haiku is good enough" from "splitting the work is what helps". By the rule committed in the design, it uses 16 subagents.
