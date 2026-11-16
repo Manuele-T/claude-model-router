@@ -877,6 +877,17 @@ Design in `data/tasks-v14.md`, committed before each part ran. v2's comparison s
 - **Hidden tests:** every run passed the whole buildbot suite. 56: 13 of 13 on the corrected test in all 5 C runs, and 13 of 13 on the official one in 4 (r3: 9 of 13, the flaw described in Part 4). 57: 8 of 8 in all 10 runs. 65: 4 of 4 and the care test 2 of 2 in all 5.
 - **Subagents:** each C run used 1 to 3 Haiku subagents, with no mismatches or fallbacks. The F runs used none and wrote no routing-log lines.
 - **Cost:** C cost less per run than its two v2 runs on 56 and 57. Both v2 means came from 2 runs each, and these 5 runs vary by up to 1.8x on 56. F on 57 came out much cheaper than in v2 ($0.23 against $0.79): the new runs were short, 6 to 10 tool calls each.
+- **Wall time** *(added 2026-11-16)*, from transcript timestamps, mean per run in minutes. Only runs from 12-13 November: v2's runs of the same setups (4-6 November) were up to 2x slower, so speed drifts between days.
+
+| Task | C, Part 1b | R, Part 1 (both steps) | F, Part 1c |
+| --- | --- | --- | --- |
+| 56 Endpoint | 3.8 (3.3-4.9) | 5.5 (4.5-7.3) | |
+| 57 Blamelists | 2.0 (1.8-2.1) | 2.8 (2.3-3.7) | 1.4 (1.3-1.6) |
+| 65 Timeout | 1.6 (1.3-2.2) | 2.5 (1.9-3.5) | |
+| 78 Review | 0.9 (0.7-1.0) | 0.7 (0.6-0.8) | |
+| **Sum of means** | **8.2** | **11.6 (+40%)** | |
+
+R's two steps run back to back (at most 1 second between them), so its time is Haiku's step plus the review.
 
 ### Care
 

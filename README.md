@@ -28,6 +28,7 @@ This repo is an experiment to find out. It has two parts:
 - **Big reviews:** on an 85-page docs check, Opus plus Haiku cost half as much as Opus alone and found over 60% more real errors. It also found about 30% more than Haiku alone at the same price.
 - **What Opus adds is care:** all 8 Opus-led runs added a speed index when asked for speed and flagged a symptom they couldn't reproduce. Neither Haiku-alone run did either. *(Correction: the flag didn't hold up in 15 later Opus-led runs; see v3.)*
 - **Sonnet alone** cost 70% less than Opus alone on the five harder tasks, but 5 times Haiku alone, and landed between them on care.
+- **Time:** on big reading jobs Opus plus Haiku was no slower than Opus alone (about 6 against 7 minutes on the 85-page check, 14 against 20 for all three reading tasks). On coding it was a few minutes slower (27 against 21 on the five harder tasks), while Haiku and Sonnet alone took about 13 and 11.
 - **I tried to make the cheap models fail, and mostly couldn't.** Across those 16 short tasks, there was one real hidden-test miss in 128 runs, and Haiku alone cost about 5% of Opus alone. Opus was more thorough, finding every planted bug in a code review where Haiku found 2 of 3, but it wasn't better across the board: on a timing bug, all 4 Opus-led runs failed and the only pass was Haiku.
 - **My routing skill rarely paid off**, and left alone, Opus never delegated.
 
@@ -40,6 +41,7 @@ Part 1 of 3 is done: Haiku does a coding task, then a fresh Opus session reviews
 - **It cost 61% less than Opus alone** and 52% less than Opus plus Haiku, with every hidden test passing.
 - **The review caught what Haiku left out:** a release note, a missing index, a missed bug, a race condition.
 - **With 5 runs each, Opus plus Haiku was a little more reliable** (every planted bug in every review) and cost about 1.5x as much as the review setup.
+- **The review setup is slower:** about 40% more wall time than Opus plus Haiku (12 against 8 minutes over the four tasks), because the review waits for Haiku to finish.
 - **A v2 finding didn't hold.** Every Opus-led run in v2 flagged a symptom it couldn't reproduce. None of 15 later Opus-led runs did, Opus alone included, with the same prompt and model. It changed with the day, not the setup, and restoring the one Claude Code instruction that had changed in between didn't bring it back.
 
 Part 2, on how splitting a big review across subagents helps, is done (all 25 runs, scored blind) and will be written up soon. Part 3, with 16 Opus subagents, hasn't run yet, so these findings may change.
@@ -50,9 +52,9 @@ Part 2, on how splitting a big review across subagents helps, is done (all 25 ru
 
 | What you're doing | What I'd use | Why |
 | --- | --- | --- |
-| A small, testable coding task you'll review yourself | **Haiku alone** | 1-12% of Opus alone's cost on five harder coding tasks, with working code in every run |
-| Coding where care matters | **Opus delegating to Haiku** | 28% cheaper than Opus alone on those tasks, and Opus reviews the work |
-| A big review or audit | **Opus delegating to Haiku** | Half the cost of Opus alone on an 85-page docs check, with over 60% more real errors found |
+| A small, testable coding task you'll review yourself | **Haiku alone** | 1-12% of Opus alone's cost on five harder coding tasks, with working code in every run, in about 60% of the time |
+| Coding where care matters | **Opus delegating to Haiku** | 28% cheaper than Opus alone on those tasks, and Opus reviews the work, but a few minutes slower |
+| A big review or audit | **Opus delegating to Haiku** | Half the cost of Opus alone on an 85-page docs check, with over 60% more real errors found, and no slower |
 | Reviewing code, or anything where every case has to be covered | **Keep Opus involved** | Found all 3 planted bugs in every review run, where Haiku alone found 2 of 3 both times |
 
 <p align="center">

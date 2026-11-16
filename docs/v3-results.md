@@ -55,12 +55,13 @@ Part 1 compared 5 runs of the review setup with v2's 2 runs per setup. So I re-r
 
 - **Opus plus Haiku was the more reliable of the two.** Every hidden test passed. It added the index and the release note in all 5 runs and found all 3 planted bugs in all 5 reviews, against 4 of 5 for the review setup.
 - **The review setup stayed 36% cheaper.** On these tasks the gap in care was one missed bug in 5 reviews.
+- **But it was slower** *(added 2026-11-16)*. Wall time, summed over the four tasks' means: 11.6 minutes for the review setup against 8.2 for Opus plus Haiku, about 40% more, because the review can only start once Haiku has finished. On the blamelist task, Opus alone took 1.4 minutes, Opus plus Haiku 2.0 and the review setup 2.8. This compares runs from 12-13 November only: v2's runs of the same setups, a week earlier, took up to twice as long, so speed drifts between days too.
 - **The "couldn't reproduce" flag depends on the day, not the setup.** All 8 Opus-led runs from 6 November said it. None of the 15 Opus-led runs from 12-13 November did, including 5 runs of Opus alone doing the whole investigation itself. Same Claude Code version, model, code and prompt, though the starting context differed by about 100 tokens (the runs load my global Claude Code setup, which changed slightly in between). So this point no longer counts as evidence for any setup.
 - **The cause is still unknown.** Comparing the requests saved in the transcripts, Claude Code's own instructions changed between the two days with the same version number. I put back the one change I could, an instruction to tell the user the plan and give updates, in 5 more runs of Opus alone (Part 1d). None flagged the symptom, so that instruction isn't the cause on its own. What's left is two other changes in Claude Code's instructions, a change on Anthropic's side, or a lucky batch.
 
 **Correction (2026-11-13).** v2 and Part 1 read that flag as care Opus adds, and Part 1 said Opus questioned the report only when it led the investigation. Neither holds with more runs. The [v2 results](v2-results.md) carry a note pointing here.
 
-**Takeaway so far: on small coding tasks, a single Opus review recovers most of what Haiku leaves out, and Opus plus Haiku is a little more reliable for about 1.5x the cost. Two runs per setup weren't enough to see that.**
+**Takeaway so far: on small coding tasks, a single Opus review recovers most of what Haiku leaves out, and Opus plus Haiku is a little more reliable and quicker for about 1.5x the cost. Two runs per setup weren't enough to see that.**
 
 ## Limitations (Part 1)
 
