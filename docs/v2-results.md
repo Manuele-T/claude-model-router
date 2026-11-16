@@ -25,7 +25,7 @@ Costs are API list prices used as a proxy for subscription usage, and most setup
 | Reviewing code, or anything where every case has to be covered | **Keep Opus involved** | Found all 3 planted bugs in every review run, where Haiku alone found 2 of 3 both times |
 
 <p align="center">
-  <img src="../charts/haiku-alone.png" alt="Five harder coding tasks: Opus alone $4.36, spontaneous Opus $4.49, skill-routed $4.71, forced Haiku $3.16, Haiku alone $0.26, Sonnet alone $1.31, all with working code; Haiku alone added no speed index and didn't flag a symptom it couldn't reproduce, and Sonnet alone added the index but didn't flag the symptom. Docs check: Opus alone $4.11 finding 36 and 38 of 92 real errors, spontaneous Opus $4.02 finding 39 and 35, skill-routed $3.88 finding 55 and 70, forced Haiku $1.93 finding 58 and 63, Haiku alone $1.93 finding 42 and 41, Sonnet alone $3.21 finding 39 and 64" width="800">
+  <img src="../charts/haiku-alone.png" alt="Five harder coding tasks: Opus alone $4.36, spontaneous Opus $4.49, skill-routed $4.71, forced Haiku $3.16, Haiku alone $0.26, Sonnet alone $1.31, all with working code; Haiku alone added no speed index and didn't flag a symptom it couldn't reproduce, and Sonnet alone added the index but didn't flag the symptom. Docs check: Opus alone $4.11 finding 36 and 38 of 92 real errors, spontaneous Opus $4.02 finding 39 and 35, skill-routed $3.88 finding 55 and 70, forced Haiku $1.93 finding 58 and 63, Haiku alone $1.93 finding 42 and 41, Sonnet alone $3.21 finding 39 and 64. Wall time per run: about 21, 22, 24, 27, 13 and 11 minutes for the coding tasks, and about 7, 9, 4, 6, 12 and 6 minutes for the docs check, in the same order" width="800">
 </p>
 
 - **Most of the bill is Opus, and on coding tasks like these it may not be needed.** My hidden tests saw no difference in correctness between Haiku alone and anything using Opus. Even [16 short tasks, most built to trip it up](#tasks-with-hidden-traps) didn't make it clearly fail, so I don't know where its limit is.
@@ -61,7 +61,7 @@ Each setup ran twice (three times where results were far apart), with the same v
 - **Every run caught every planted error**, so they were too easy; the real errors are what separate the setups.
 
 <p align="center">
-  <img src="../charts/v2-reading.png" alt="Reading buildbot: all three tasks cost $8.98 for Opus alone, $8.26 spontaneous Opus, $10.19 skill-routed and $4.44 forced Haiku; on the 85-page docs check Opus alone found 36 and 38 of 92 real errors for $4.11, spontaneous Opus 39 and 35 for $4.02, skill-routed 55 and 70 for $3.88, forced Haiku 58 and 63 for $1.93, Haiku alone 42 and 41 for $1.93, and Sonnet alone 39 and 64 for $3.21" width="800">
+  <img src="../charts/v2-reading.png" alt="Reading buildbot: all three tasks cost $8.98 for Opus alone, $8.26 spontaneous Opus, $10.19 skill-routed and $4.44 forced Haiku; on the 85-page docs check Opus alone found 36 and 38 of 92 real errors for $4.11, spontaneous Opus 39 and 35 for $4.02, skill-routed 55 and 70 for $3.88, forced Haiku 58 and 63 for $1.93, Haiku alone 42 and 41 for $1.93, and Sonnet alone 39 and 64 for $3.21. Wall time per run: about 20, 23, 12 and 14 minutes for all three tasks; on the 85-page check about 7, 9, 4, 6, 12 and 6 minutes, in the same order" width="800">
 </p>
 
 Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per setup, and "of 42/92" counts errors found by any run, not true recall. Per-run numbers and the scoring rules are in [`data/results.md`](../data/results.md).
@@ -69,11 +69,11 @@ Same caveats as v1: costs are an API-price proxy, there are only 2-3 runs per se
 ## Writing code
 
 <p align="center">
-  <img src="../charts/v2-coding-small.png" alt="Writing code on the small project: on 2 simple tasks, costs were $0.89 for Opus alone, $1.04 free Opus, $1.05 skill-routed and $0.70 Opus plus Haiku, all passing 13 of 13 hidden tests; on 3 harder tasks, $2.41, $2.61, $2.89, $1.80, $0.11 for Haiku alone and $0.76 for Sonnet alone, with the lost points coming from a flaw in my test" width="800">
+  <img src="../charts/v2-coding-small.png" alt="Writing code on the small project: on 2 simple tasks, costs were $0.89 for Opus alone, $1.04 free Opus, $1.05 skill-routed and $0.70 Opus plus Haiku, all passing 13 of 13 hidden tests; on 3 harder tasks, $2.41, $2.61, $2.89, $1.80, $0.11 for Haiku alone and $0.76 for Sonnet alone, with the lost points coming from a flaw in my test. Wall time, all tasks: about 3, 4, 4 and 6 minutes on the simple tasks, and about 10, 12, 13, 14, 7 and 7 minutes on the harder ones, in the same order" width="800">
 </p>
 
 <p align="center">
-  <img src="../charts/v2-coding-large.png" alt="Writing code on buildbot: 2 harder tasks cost $1.95 for Opus alone, $1.88 free Opus, $1.82 skill-routed, $1.36 Opus plus Haiku, $0.15 Haiku alone and $0.56 Sonnet alone. All scored 21 of 21 on corrected tests. All Opus-led runs added a speed index and flagged the odd symptom; neither Haiku-alone run did either, and Sonnet alone added the index but didn't flag the symptom" width="800">
+  <img src="../charts/v2-coding-large.png" alt="Writing code on buildbot: 2 harder tasks cost $1.95 for Opus alone, $1.88 free Opus, $1.82 skill-routed, $1.36 Opus plus Haiku, $0.15 Haiku alone and $0.56 Sonnet alone. All scored 21 of 21 on corrected tests. All Opus-led runs added a speed index and flagged the odd symptom; neither Haiku-alone run did either, and Sonnet alone added the index but didn't flag the symptom. Wall time for both tasks: about 11, 10, 12, 12, 6 and 4 minutes, in the same order" width="800">
 </p>
 
 "But I only use Claude for coding." So v2 also tests tasks that write code, on the small codebase: a well-specified feature touching 7-9 files, and a bug hunt from a user's symptom (one bug planted before any run, not caught by the existing tests). Each was scored by a hidden test file written before any run, plus the whole unit suite. Each setup ran twice ([`data/tasks-v6.md`](../data/tasks-v6.md)).

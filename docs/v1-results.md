@@ -30,7 +30,7 @@ I wanted to see whether, and how, Claude Opus decides to spawn subagents, and wh
 **Largest codebase (beets, ~52k lines): delegation finally paid.** Forced Opus worked hardest and found the most on the 80-page docs check (44 of 61 issues combined after a re-check, against 35-39 for the others; first scored as 45 of 51 against 30-34), but one long session cost $9 per run. Forced Haiku cost 75% less overall and found the most on the reference docs (24 of 35 combined, against 17); skill routing cost 38% less.
 
 <p align="center">
-  <img src="../charts/largest-codebase.png" alt="Largest codebase: spontaneous Opus cost 32% less than forced Opus, skill-routed runs 38% less and forced Haiku 75% less; on the 80-page docs check all three found fewer issues" width="800">
+  <img src="../charts/largest-codebase.png" alt="Largest codebase: spontaneous Opus cost 32% less than forced Opus, skill-routed runs 38% less and forced Haiku 75% less; on the 80-page docs check all three found fewer issues. Wall time per run, all three tasks: about 25 minutes for forced Opus, 17 spontaneous, 10 skill-routed and 13 forced Haiku; on the 80-page check about 15, 9, 3 and 4 minutes" width="800">
 </p>
 
 Across all three:
