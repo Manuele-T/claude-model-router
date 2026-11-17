@@ -10,6 +10,10 @@ A Claude Code skill experiment: Opus orchestrates and routes subagents to Haiku/
 
 `recap/brief-task-explainer.md` (start here: what to run next and how) and `recap/recap.md` (full history) are the local, gitignored handover for new sessions. After each finished task (a round of runs, a judging batch, a write-up, a design, a change to how things are run), update both before reporting the task done, without being asked: status, results, next steps and any new rule or file. Also add a short entry at the top of `recap/partial-findings.md` (gitignored, findings at a glance): what the task showed in plain words, marked provisional until published.
 
+## Reporting cost per model
+
+From 2026-11-17 on, any setup that uses more than one model (Opus plus Haiku helpers, Haiku then an Opus review, and so on) is reported with its cost split per model, not only the total, in run reports, findings, docs text and charts (for example "$1.85: Opus $1.04, Haiku $0.81"). `scripts/verify_models.py --project bench-<run>/` prints the split (`haiku`, `haiku>100k`, `sonnet`, `opus` lines); count `haiku>100k` as Haiku. Results published before that date stay as published.
+
 ## Private small project rules
 
 Follow the rules in `recap/brief-task-explainer.md` (section 8) for anything that mentions the private small project.
