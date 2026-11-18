@@ -1,16 +1,16 @@
-# v3.0 results and discussion (work in progress)
+# v3.0 results and discussion
 
 [Back to the README](../README.md) · [v1.0 results](v1-results.md) · [v2.0 results](v2-results.md)
 
-**Work in progress.** v3 has three parts. Part 1 is written up below, with follow-ups 1b and 1c that gave the comparison setups 5 runs each, and 1d. Part 2 has run and been scored blind, and will be written up soon. Part 3 hasn't run yet. The numbers below are final for Part 1, but the conclusions may change once Parts 2 and 3 are in.
+v3 has three parts, all done and written up below. Part 1 (with follow-ups 1b, 1c and 1d) is about coding; Parts 2 and 3 are about one big review.
 
 **The questions:**
 
 1. **Haiku then an Opus review:** if Haiku alone does a coding task and a fresh Opus session reviews it once, does that get back the care Opus added in v2, at close to Haiku's cost? *(Part 1, with 1b and 1c, done)*
-2. **Coverage:** on the 85-page docs check where Opus plus Haiku found the most, how do errors found and cost change with the number of Haiku subagents? *(Part 2, all 25 runs done and scored blind, write-up to come)*
-3. **Cheap model or split:** with the same split, do Opus subagents find clearly more than Haiku subagents, and at what cost? *(Part 3, not run yet)*
+2. **Coverage:** on the 85-page docs check where Opus plus Haiku found the most, how do errors found and cost change with the number of Haiku subagents? *(Part 2, done)*
+3. **Cheap model or split:** with the same split, do Opus subagents find clearly more than Haiku subagents, and at what cost? *(Part 3, done)*
 
-Costs are API list prices used as a proxy for subscription usage. Per-run numbers and scoring rules are in [`data/results.md`](../data/results.md).
+Costs are API list prices used as a proxy for subscription usage. Where a setup uses more than one model, the cost is split per model. Per-run numbers and scoring rules are in [`data/results.md`](../data/results.md).
 
 ## Part 1: Haiku does the work, Opus reviews it once
 
@@ -61,7 +61,7 @@ Part 1 compared 5 runs of the review setup with v2's 2 runs per setup. So I re-r
 
 **Correction (2026-11-13).** v2 and Part 1 read that flag as care Opus adds, and Part 1 said Opus questioned the report only when it led the investigation. Neither holds with more runs. The [v2 results](v2-results.md) carry a note pointing here.
 
-**Takeaway so far: on small coding tasks, a single Opus review recovers most of what Haiku leaves out, and Opus plus Haiku is a little more reliable and quicker for about 1.5x the cost. Two runs per setup weren't enough to see that.**
+**Takeaway (Part 1): on small coding tasks, a single Opus review recovers most of what Haiku leaves out, and Opus plus Haiku is a little more reliable and quicker for about 1.5x the cost. Two runs per setup weren't enough to see that.**
 
 ## Limitations (Part 1)
 
@@ -72,7 +72,79 @@ Part 1 compared 5 runs of the review setup with v2's 2 runs per setup. So I re-r
 - Claude Opus wrote the tests and the criteria, and a fresh Opus session scored the answers. Blinding was imperfect: review answers read like reviews, and some v2 answers mention their helpers.
 - Costs use API list prices as a proxy for subscription usage.
 
-## Still to come
 
-- **Part 2 (done, write-up to come):** the 85-page docs check with exactly 1, 4, 8 and 16 Haiku subagents, and Haiku + Opus checker, 5 runs each, scored blind against a re-verified list of real errors. [Design committed](../data/tasks-v15.md) before the first run. The runs were spread over three days, after the day effect above. All 25 are done and scored; results will be published with the write-up.
-- **Part 3:** the same split with Opus subagents, to separate "Haiku is good enough" from "splitting the work is what helps". By the rule committed in the design, it uses 16 subagents.
+## Part 2: how many Haiku helpers for a big review?
+
+In v2, the biggest review was an 85-page docs check on buildbot (about 6,000 lines of docs against ~100k lines of code). There, Opus plus Haiku found over 60% more real errors than Opus alone at half the cost, and the skill picked 6 or 7 Haiku helpers by itself. So: does the number of helpers matter?
+
+I cut the 85 pages into fixed groups of about equal size and told Opus to use exactly 1, 4, 8 or 16 Haiku helpers, one per group, then check and merge their findings. I also ran Haiku, then Opus review from Part 1 on the same task. 5 runs each, 25 runs, spread over three days (14-16 November) after the day effect in Part 1c. The [design was committed before any run](../data/tasks-v15.md), including the rule for picking Part 3's setup.
+
+**Scoring.** Every claim from every run was checked against the code, blind, by fresh sessions, and every new real error went on the list. That list grew from 92 (v2) to 160 real errors, plus 20 planted ones. Each batch was scored on the list as it stood then, so earlier runs weren't re-checked for the errors added later.
+
+| Mean per run | 1 Haiku helper | 4 helpers | 8 helpers | **16 helpers** | Haiku, then Opus review |
+| --- | --- | --- | --- | --- | --- |
+| Real errors found | 20 | 69 | 63 | **86** | 50 |
+| Cost | $1.25 | $2.12 | $1.63 | **$1.69** | $3.04 |
+| Split per model | Opus $0.46, Haiku $0.79 | Opus $0.94, Haiku $1.19 | Opus $1.04, Haiku $0.59 | **Opus $1.30, Haiku $0.39** | Haiku $1.72, Opus review $1.32 |
+| Real errors per $ | 16 | 32 | 38 | **51** | 17 |
+| False claims | 0.2 | 3.2 | 2.8 | 10.0 | 3.0 |
+| Wall time | 7.1 min | 6.3 min | 4.6 min | **4.4 min** | 12.4 min |
+
+- **More helpers found far more, for about the same money.** 16 helpers found 4 times what 1 helper found, for 35% more. They were also the quickest.
+- **One helper is too few.** It has to read everything, finds a fifth of what 16 find, and still isn't cheap: almost all its Haiku cost is at the higher price Haiku charges past 100k tokens per request. The same price step is why 4 helpers cost more than 8.
+- **The cost moves from Haiku to Opus as the split grows.** With 16 helpers, Opus is about three quarters of the bill, because it has 16 reports to check and merge. The helpers themselves get cheaper, since each one stays small.
+- **The catch is false claims.** 16 helpers made the most (10 per run, against 3 for 4 or 8 helpers). Opus merged them without catching all of them.
+- **Haiku, then Opus review was the worst value here.** It found 50 for $3.04 and varied a lot (34 to 66). One Haiku session reading 85 pages misses a lot, and a review can only check what Haiku reported.
+- **Every run found all 20 planted errors** except the 1-helper runs (17 to 20). They don't separate the setups.
+- **For comparison** (v2 runs, re-scored blind on the same list, labelled): Opus alone found 37 and 40 for $3.96 and $4.25, and Opus plus Haiku with the skill choosing the split found 62 and 63 for $1.85 (Opus $1.04, Haiku $0.81) and $2.01 (Opus $1.12, Haiku $0.88).
+
+**A measurement trap, and a labelled correction.** The method scores each run's final answer. One 16-helper run ended with a short addendum about one group, after its full report in the message before, so its final answer scored 9. Re-scored blind on the full report plus the addendum, it found 88. The 16-helper row above uses the re-score; as originally scored, 16 helpers averaged 71 real errors (42 per $), still the best value. Every Part 3 answer was checked to be the whole report.
+
+**Choosing Part 3's setup.** The committed rule picks the count with the most real errors per dollar, and the one that found more if the next is within 10%. That's 16 helpers either way (8 helpers were within 10% only before the re-score, and found fewer).
+
+## Part 3: Opus helpers, or Haiku helpers?
+
+Part 2 says splitting helps. But is that because the work is split, or because Haiku happens to be good enough? So Part 3 used the same 16 groups and the same wording with Opus helpers instead. 5 runs on two days (17-18 November). One run hit the subscription's usage limit after 2 minutes; it was set aside, not scored, and run again under the same rules.
+
+| Mean per run | **16 Haiku helpers** (Part 2) | 16 Opus helpers |
+| --- | --- | --- |
+| Real errors found | **86** | 89 |
+| Excluding borderline errors | 74 | 73 |
+| False claims | 10.0 | 3.8 |
+| Cost | **$1.69 (Opus $1.30, Haiku $0.39)** | $8.12 (Opus $8.12: lead $1.16, helpers $6.96) |
+| Real errors per $ | **51** | 11 |
+| Wall time | 4.4 min | 3.7 min |
+
+- **Opus helpers found about the same, at nearly 5 times the cost.** 89 against 86 real errors per run, and equal once borderline errors are left out. Part 3's count also includes 12 new errors only its batch could be scored for; without them it's about 85.
+- **They were cleaner.** Fewer than half the false claims. That's the one real gain.
+- **The helpers are the whole bill.** The Opus lead cost about the same in both setups ($1.16 against $1.30). The difference is the helpers: $6.96 on Opus against $0.39 on Haiku.
+- **Opus helpers eat into the usage limit fast.** On the first day, the third run hit the 5-hour limit 2 minutes in, after two full runs that evening.
+- **Every run followed the split:** 30 of 30 runs across Parts 2 and 3 used exactly the helpers asked for, on the model asked for.
+
+So on this big review, **splitting the work is what helps, and Haiku is good enough for each piece.** Opus helpers buy fewer false claims, not more finds.
+
+<p align="center">
+  <img src="../charts/v3-splitting.png" alt="85-page docs check on buildbot, mean per run over 5 runs. 1 Haiku helper: 20 real errors, $1.25 (Opus $0.46 + Haiku $0.79), about 7 minutes. 4 Haiku helpers: 69, $2.12 (Opus $0.94 + Haiku $1.19), about 6 minutes. 8 Haiku helpers: 63, $1.63 (Opus $1.04 + Haiku $0.59), about 5 minutes. 16 Haiku helpers: 86, $1.69 (Opus $1.30 + Haiku $0.39), about 4 minutes. 16 Opus helpers: 89, $8.12 (lead $1.16 + helpers $6.96), about 4 minutes. Haiku, then Opus review: 50, $3.04 (Haiku $1.72 + Opus $1.32), about 12 minutes. For comparison, v2 runs re-scored on the same list: Opus alone 37 and 40 for $4.11, Opus plus Haiku 62 and 63 for $1.93 (Opus $1.08 + Haiku $0.85)" width="800">
+</p>
+
+
+## Why does Opus alone miss so much on big reviews?
+
+Opus alone found 37-40 real errors on this check, against 86 for Opus with 16 Haiku helpers. People on Reddit suggested two reasons: Opus skims the later pages, or it compacts its context and forgets the early ones. I checked both from the transcripts of the 8 solo Opus runs on the two biggest docs checks (this one and an 80-page one on beets).
+
+- **It isn't coverage.** Every run put every page in front of the model, and almost every missed error was on a line the run had in its output.
+- **It isn't late skimming.** Pages opened late weren't missed more often than early ones.
+- **It isn't compaction.** No run compacted: context grew steadily to 233k-393k tokens, with no drop.
+
+So it's attention per line. Opus alone saw the same lines as the split setups and missed more of them. A small fresh context per group seems to look harder. What I can't rule out is that a long context blurs attention all through a run, without any compaction.
+
+## Limitations (Parts 2 and 3)
+
+- One task, one codebase. The groups cut pages by size, not topic, so an error that spans two pages may fall between helpers.
+- The split wording is mine. Telling Opus exactly how to split is a different setup from v2's, where the skill chose.
+- The list of real errors grew batch by batch, and earlier runs weren't re-checked for errors added later. That favours later batches a little; Part 3 is the last.
+- Claude Code changed version during Part 2 (2.1.317 for the first two rounds, 2.1.325 after), and Part 3 ran on 2.1.325. Haiku, then Opus review found less in its last two runs; I can't tell whether that's the version, the day or chance.
+- Claude Opus verified the errors and judged the claims, and fresh Opus sessions did the blind scoring. Blinding stripped model and setup names, but answers that mention their helpers still show that some delegation happened.
+- Costs use API list prices as a proxy for subscription usage.
+
+**Takeaway: on a big review, split the work into small pieces and give them to Haiku. 16 Haiku helpers found more than twice what Opus alone found, for 40% of the cost, and Opus helpers didn't find more.**

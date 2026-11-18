@@ -54,6 +54,12 @@ h2 span {{ font-size: 44px; font-weight: 400; color: #555; }}
 .thead.t div:nth-child(5) {{ text-align: right; }}
 .bar.tm {{ white-space: nowrap; }}
 .bar.tm i {{ opacity: 0.55; flex: none; }}
+.bar .stack {{ display: flex; flex: none; }}
+small.sl {{ display: block; font-size: 32px; color: #777; margin-top: 10px; white-space: nowrap; }}
+.bar .stack i {{ border-radius: 0; }}
+.bar .stack i:first-child {{ border-radius: 6px 0 0 6px; }}
+.bar .stack i:last-child {{ border-radius: 0 6px 6px 0; }}
+.bar .stack i:only-child {{ border-radius: 6px; }}
 """
 
 
@@ -61,8 +67,10 @@ def esc(s):
     return html.escape(s)
 
 
-def section(title, note, rows, base="forced Opus", cost_label="Est. API cost", time_label="Wall time per run"):
-    """If every row has "time" (minutes), the section gets a wall-time column."""
+def section(title, note, rows, base="forced Opus", cost_label="Est. API cost", time_label="Wall time per run", scale=None):
+    """If every row has "time" (minutes), the section gets a wall-time column.
+    A row with "split" [(model, cost), ...] draws one bar segment per model (COLORS key) and lists them under the bar.
+    scale (pixels per dollar) puts several sections on one bar scale."""
     top = max(r["cost"] for r in rows)
     timed = all("time" in r for r in rows)
     t = " t" if timed else ""
@@ -72,7 +80,7 @@ def section(title, note, rows, base="forced Opus", cost_label="Est. API cost", t
            f'<div>{esc(cost_label)}</div><div>vs {esc(base)}</div>'
            + (f"<div>{esc(time_label)}</div>" if timed else "") + "</div>"]
     for r in rows:
-        width = int((250 if timed else 440) * r["cost"] / top)
+        width = int(scale * r["cost"]) if scale else int((250 if timed else 440) * r["cost"] / top)
         small = f"<small>{esc(r['small'])}</small>" if r.get("small") else ""
         delta = r.get("delta", "–")
         cls = "d good" if delta.startswith("−") else "d"
@@ -85,12 +93,22 @@ def section(title, note, rows, base="forced Opus", cost_label="Est. API cost", t
             f'<div class="row{t}"><div class="n">{esc(r["name"])}</div>'
             f'<div class="m">{esc(r["models"])}{small}</div>'
             f'<div class="q">{quality}</div>'
-            f'<div class="bar"><i style="width:{width}px;background:{COLORS[r["kind"]]}"></i>${r["cost"]:.2f}</div>'
-            f'<div class="{cls}">{esc(delta)}</div>'
+            + (cost_bar(r, width) if r.get("split") else
+               f'<div class="bar"><i style="width:{width}px;background:{COLORS[r["kind"]]}"></i>${r["cost"]:.2f}</div>')
+            + f'<div class="{cls}">{esc(delta)}</div>'
             + (f'<div class="bar tm"><i style="width:{int(130 * r["time"] / top_t)}px;background:{COLORS[r["kind"]]}"></i>'
                f'~{r["time"]:.0f} min</div>' if timed else "")
             + "</div>")
     return "\n".join(out)
+
+
+def cost_bar(r, width):
+    """Stacked cost bar: one segment per model, widths summing to the row's bar width."""
+    total = sum(c for _, c in r["split"])
+    segs = "".join(f'<i style="width:{max(4, round(width * c / total))}px;background:{COLORS[m]}"></i>' for m, c in r["split"])
+    label = r.get("split_label") or (" + ".join(f"{m.capitalize()} ${c:.2f}" for m, c in r["split"]) if len(r["split"]) > 1 else "")
+    small = f'<small class="sl">{esc(label)}</small>' if label else ""
+    return f'<div><div class="bar"><span class="stack">{segs}</span>${r["cost"]:.2f}</div>{small}</div>'
 
 
 def depth_section(title, note, rows, read_max=1450, written_max=212.5, cost_max=9.20):
@@ -450,6 +468,43 @@ CHARTS = {
          "<b>“36 and 38 of 92”:</b> each setup ran twice, and each number is one run's real errors found, out of 92 on the list. Higher is better. <b>Combined</b> = different errors found across both runs."],
         [],
         "Two runs per setup, measured after the runs, so treat this as a hint", EXPL), 2220),
+    "v3-splitting": (page(
+        "Splitting a big review: how many helpers, and which model?",
+        "buildbot 85-page doc check, ~100k lines, v3 · estimated API cost per run, split by model",
+        [section("Fixed split, 5 runs per setup", "Opus checks and merges the helpers' findings", [
+            {"name": "1 Haiku helper", "models": "Opus + 1 Haiku", "small": "reads all 85 pages", "kind": "haiku", "time": 7.1,
+             "cost": 1.25, "split": [("opus", 0.46), ("haiku", 0.79)], "delta": "−70%",
+             "quality": ["Real errors: 20 per run", "Range 12-32 · false claims 0.2"]},
+            {"name": "4 Haiku helpers", "models": "Opus + 4 Haiku", "small": "~21 pages each", "kind": "haiku", "time": 6.3,
+             "cost": 2.12, "split": [("opus", 0.94), ("haiku", 1.19)], "delta": "−48%",
+             "quality": ["Real errors: 69 per run", "Range 59-76 · false claims 3.2"]},
+            {"name": "8 Haiku helpers", "models": "Opus + 8 Haiku", "small": "~11 pages each", "kind": "haiku", "time": 4.6,
+             "cost": 1.63, "split": [("opus", 1.04), ("haiku", 0.59)], "delta": "−60%",
+             "quality": ["Real errors: 63 per run", "Range 51-79 · false claims 2.8"]},
+            {"name": "16 Haiku helpers", "models": "Opus + 16 Haiku", "small": "~5 pages each", "kind": "haiku", "time": 4.4,
+             "cost": 1.69, "split": [("opus", 1.30), ("haiku", 0.39)], "delta": "−59%",
+             "quality": ["Real errors: 86 per run", "Range 77-94 · false claims 10"]},
+            {"name": "16 Opus helpers", "models": "Opus + 16 Opus", "small": "same 16 groups", "kind": "opus", "time": 3.7,
+             "cost": 8.12, "split": [("opus", 8.12)], "split_label": "lead $1.16 + helpers $6.96", "delta": "+98%",
+             "quality": ["Real errors: 89 per run", "Range 74-102 · false claims 3.8"]},
+            {"name": "Haiku, then Opus review", "models": "Haiku alone, then Opus", "small": "a fresh session reviews once", "kind": "routed", "time": 12.4,
+             "cost": 3.04, "split": [("haiku", 1.72), ("opus", 1.32)], "delta": "−26%",
+             "quality": ["Real errors: 50 per run", "Range 34-66 · false claims 3.0"]},
+         ], base="Opus alone", scale=30),
+         section("For comparison: v2, 2 runs each", "re-scored blind on the same list", [
+            {**V2_OPUS, "cost": 4.11, "split": [("opus", 4.11)],
+             "quality": ["Real errors: 37 and 40", "False claims 0"]},
+            {**V2_OH, "small": "the skill chose 6-7 helpers", "cost": 1.93, "split": [("opus", 1.08), ("haiku", 0.85)], "delta": "−53%",
+             "quality": ["Real errors: 62 and 63", "False claims 2.0"]},
+         ], base="Opus alone", scale=30)],
+        ["<b>Doc check:</b> read buildbot's 85 documentation pages on build steps and reporters, and list where they disagree with the code, such as a wrong default value.",
+         "<b>Fixed split:</b> the pages are cut into groups of about equal size, the same groups in every run, and Opus is told to use exactly one helper per group, then check and merge their findings. Every run used exactly the helpers asked for.",
+         "<b>Real errors:</b> mean per run, out of a list of 160 real errors built by checking every claim from every run against the code, blind. Higher is better. 20 planted errors were found by almost every run, so they aren't counted. <b>False claims:</b> errors a run reported that the blind check showed were wrong.",
+         "<b>16 Haiku helpers:</b> one run's final answer was only an addendum, after its full report. The row uses a labelled blind re-score of the full report (88); as first scored, the mean is 71.",
+         "<b>Cost split:</b> each bar shows what went to each model. Blue is Opus, green is Haiku. Past 100k tokens per request Haiku costs 5 times more, which is most of the Haiku cost with 1 or 4 helpers.",
+         "<b>Wall time:</b> minutes from a run's first step to its last, from the transcripts, as a mean of 5 runs. v2's runs ran a week earlier and API speed changes between days, so they get no time column."],
+        [],
+        "Costs are API list prices, a proxy for subscription usage · Percentages compare with v2's Opus alone · One task, 5 runs per v3 setup", EXPL), 3863),
 }
 
 

@@ -933,6 +933,64 @@ Design added to `data/tasks-v14.md` after Part 1c's result and committed before 
 
 **What Part 1d shows.** On this task, Claude Code's behaviour changed between two days with the same version number and model ID, and the one change I could undo didn't bring the old behaviour back. For benchmarking, that means a batch of runs on one day may not represent a setup, so later parts spread each setup's runs across days.
 
+## v3, Part 2: splitting the 85-page docs check across 1 to 16 Haiku helpers (task 43; 2026-11-14 to 2026-11-16)
+
+Design in `data/tasks-v15.md`, committed before any run. Task 43's prompt and source are unchanged from v2 (85 doc pages on buildbot, with 20 planted errors). Arms **C1, C4, C8, C16** are the skill with `use haiku` plus a fixed split: the pages, sorted by path, cut into N groups of about equal line count (`data/splits-v15.txt`), with exactly one Haiku subagent per group; Opus then checks and merges their findings. **R** is unchanged from Part 1. 5 runs each, in rounds with the order rotated, at most 2 rounds per day. Rounds 1-2 ran on Claude Code 2.1.317, rounds 3-5 on 2.1.325. $48.63 in total.
+
+**Scoring.** Every claim in every final answer was judged blind by a fresh session (run and model names stripped, answers shuffled), against the unmodified buildbot code at the same commit. Claims about errors not yet on the list were checked and added. Three batches (rounds 1-2, rounds 3-5, one labelled re-score). The list of real errors grew from v2's 92 to 146 after Part 2 and 148 after the re-score; each batch was scored on the list as it stood, and earlier rows weren't re-checked for later additions. "Strict" leaves out errors marked borderline. I spot-checked new errors and false verdicts against the code in each batch.
+
+| Run | Real | Strict | Planted /20 | False | Claims | Cost (Opus + Haiku) | Wall time |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| C1 r1-r5 | 18 / 26 / 32 / 12 / 13 | 18 / 24 / 30 / 12 / 12 | 18 / 20 / 20 / 17 / 19 | 0 / 1 / 0 / 0 / 0 | 36 / 47 / 52 / 29 / 32 | 1.19 / 1.28 / 1.93 / 0.81 / 1.04 | 6.7 / 7.5 / 8.5 / 5.6 / 7.1 min |
+| C4 r1-r5 | 67 / 59 / 75 / 76 / 67 | 58 / 49 / 58 / 67 / 57 | 20 in all 5 | 5 / 1 / 7 / 2 / 1 | 92 / 80 / 102 / 99 / 90 | 1.73 / 2.05 / 2.41 / 2.23 / 2.18 | 5.6 / 6.5 / 6.8 / 6.6 / 5.8 min |
+| C8 r1-r5 | 79 / 61 / 55 / 67 / 51 | 68 / 53 / 48 / 56 / 46 | 20 in all 5 | 4 / 8 / 0 / 2 / 0 | 103 / 89 / 75 / 89 / 71 | 1.81 / 1.76 / 1.61 / 1.46 / 1.50 | 5.0 / 4.8 / 4.3 / 4.5 / 4.2 min |
+| C16 r1-r5 | 77 / 94 / 82 / 91 / 9 (88 re-scored) | 70 / 80 / 72 / 72 / 7 (75) | 20 / 20 / 20 / 20 / 0 (20) | 7 / 16 / 8 / 9 / 3 (10) | 104 / 132 / 110 / 121 / 13 (118) | 1.69 / 1.71 / 1.84 / 1.38 / 1.83 | 4.0 / 4.4 / 4.4 / 4.6 / 4.5 min |
+| R r1-r5 | 58 / 56 / 66 / 37 / 34 | 52 / 49 / 56 / 33 / 32 | 20 in all 5 | 5 / 5 / 5 / 0 / 0 | 83 / 81 / 91 / 57 / 54 | 3.52 / 4.29 / 3.69 / 1.72 / 1.97 | 13.9 / 14.9 / 13.9 / 10.3 / 8.8 min |
+
+| Arm, mean per run | Real | Strict | False | Cost | Opus | Haiku (of which past 100k) | Real per $ | Wall time |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| C1 | 20.2 | 19.2 | 0.2 | $1.25 | $0.46 | $0.79 ($0.75) | 16.2 | 7.1 min |
+| C4 | 68.8 | 57.8 | 3.2 | $2.12 | $0.94 | $1.19 ($1.08) | 32.5 | 6.3 min |
+| C8 | 62.6 | 54.2 | 2.8 | $1.63 | $1.04 | $0.59 ($0.36) | 38.5 | 4.6 min |
+| C16, as scored | 70.6 | 60.2 | 8.6 | $1.69 | $1.30 | $0.39 ($0.03) | 41.8 | 4.4 min |
+| **C16, with the r5 re-score** | **86.4** | **73.8** | **10.0** | **$1.69** | **$1.30** | **$0.39 ($0.03)** | **51.1** | **4.4 min** |
+| R | 50.2 | 44.4 | 3.0 | $3.04 | $1.32 (review) | $1.72 ($1.70) | 16.5 | 12.4 min |
+| v2 F, Opus alone (2 runs, re-scored, labelled) | 38.5 | 36.0 | 0 | $4.11 | $4.11 | none | 9.4 | |
+| v2 C, Opus plus Haiku, skill's own split (2 runs, re-scored, labelled) | 62.5 | 55.0 | 2.0 | $1.93 | $1.08 | $0.85 | 32.4 | |
+
+- **Subagents:** 25 of 25 runs used exactly the number of Haiku subagents asked for (R: none), with no mismatches or fallbacks.
+- **The Haiku price step:** Haiku costs 5 times more per token once one request passes 100k tokens. Almost all of C1's and C4's Haiku cost is at that price, which is why C4 costs more than C8, and C1 isn't much cheaper than C16.
+- **C16 r5 (labelled correction, 2026-11-16).** Its final answer was only an addendum about one group (2,581 characters); the full 11,404-character report was the message before. By the committed method (score the final answer) it scored 9. Re-scored blind as one answer (report plus addendum), it found 88 real errors, strict 75, all 20 planted, 10 false. The original row stays; the bold row uses the re-score.
+- **Part 3's setup**, by the rule fixed in the design (most real errors per dollar; if the next is within 10%, the one that found more): 16 either way. Before the re-score C8 was within 10% (38.5 against 41.8) and C16 found more.
+- **v2 rows** were re-scored blind on the same list (2026-11-14). The published v2 scores (on the list of 92) stay as published. Wall times from v2 aren't compared, since runs got faster between v2 and v3.
+- **Audit:** no writes outside the clones except the routing log and the runs' own scratchpads. Haiku helpers in five runs searched the whole disk for one Twisted file (read-only) to check a size limit in the docs, and one R run downloaded a 14 KB package file from PyPI to `/tmp` to check a version (not installed; deleted afterwards). Auto mode refused a handful of commands, each retried or harmless.
+
+## v3, Part 3: the same split with 16 Opus helpers (task 43; 2026-11-17 to 2026-11-18)
+
+Design in `data/tasks-v15.md` (arm **O16**: the same 16 groups and wording as C16, with `use opus`). 5 runs on two days, Claude Code 2.1.325. The first try at r3 hit the subscription's 5-hour usage limit after 2 minutes ($5.14, no answer); it was set aside unscored and r3 was run again. $45.75 in total, $40.61 for the scored runs. Judged blind in one batch with the same criteria: 567 claims, 12 new real errors (none planted), so the list is now **160 real errors**.
+
+| Run | Real | Strict | Planted /20 | False | Claims | Cost (Opus lead + Opus helpers) | Wall time |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| O16 r1 | 87 | 72 | 20 | 3 | 111 | $8.43 ($1.12 + $7.31) | 3.5 min |
+| O16 r2 | 102 | 82 | 20 | 4 | 126 | $7.53 ($1.03 + $6.50) | 3.6 min |
+| O16 r3 | 74 | 64 | 20 | 3 | 97 | $8.47 ($1.16 + $7.31) | 3.7 min |
+| O16 r4 | 98 | 78 | 20 | 3 | 121 | $9.13 ($1.43 + $7.70) | 4.5 min |
+| O16 r5 | 86 | 70 | 20 | 6 | 112 | $7.05 ($1.06 + $5.99) | 3.4 min |
+| **Mean** | **89.4** | **73.2** | **20** | **3.8** | **113.4** | **$8.12 ($1.16 + $6.96)** | **3.7 min** |
+| C16 mean, with the r5 re-score | 86.4 | 73.8 | 20 | 10.0 | 117.0 | $1.69 (Opus $1.30 + Haiku $0.39) | 4.4 min |
+
+- **Same finds, 4.8 times the cost.** 11.0 real errors per dollar against 51.1. O16's count includes 4 W errors per run on average (the 12 new ones), which earlier batches couldn't be scored for; without them it's about 85.
+- **Fewer false claims** (3.8 against 10.0 per run).
+- **Every final answer is the whole report** (checked by length and structure before judging).
+- **Subagents:** 16 of 16 on Opus in every run, no mismatches or fallbacks.
+- **Audit:** no blocked commands, no reads or writes outside the clones except the routing log and the runs' own scratchpads.
+
+**What Parts 2 and 3 show.** On this review, more helpers found far more for about the same money, and 16 Haiku helpers were the best value. Swapping them for Opus helpers didn't find more: it cut false claims and cost almost 5 times as much. So the gain comes from splitting the work, and Haiku is good enough for each piece.
+
+### Side check: did Opus alone compact its context? (2026-11-17)
+
+A read-only check of the 8 solo Opus runs on the two biggest docs checks (beets task 33, setups A and D; buildbot task 43, setups F and D). No run has a compaction entry, and context per request grew steadily to 233k-393k tokens (on a 1M window) with no drop. A second read-only script rebuilt which doc lines each run was shown: every run opened every page, almost every missed error was on a line the run had in its output, and pages opened late weren't missed more often than early ones. So Opus alone's misses on these tasks aren't coverage, late skimming or compaction; it saw the lines and didn't flag them.
+
 ## What I'm working on next
 
 I wanted a skill where Opus picks the best setup for each task, including Haiku with no Opus at all. So far, I was able to see that the skill can definitely spawn a Haiku subagent to do the job, but cannot completely switch the session to Haiku, at least on Claude Code 2.1.317.

@@ -34,9 +34,9 @@ This repo is an experiment to find out. It has two parts:
 
 **[Read the v2.0 results and discussion](docs/v2-results.md)**
 
-### v3: Haiku with an Opus review, and why splitting work helps (work in progress)
+### v3: Haiku with an Opus review, and why splitting work helps
 
-Part 1 of 3 is done: Haiku does a coding task, then a fresh Opus session reviews it once. 20 runs on the four buildbot tasks where Opus added care in v2, plus 25 more runs giving Opus plus Haiku and Opus alone 5 runs each to compare with.
+80 scored runs in three parts. **Part 1:** Haiku does a coding task, then a fresh Opus session reviews it once. 20 runs on the four buildbot tasks where Opus added care in v2, plus 25 more runs giving Opus plus Haiku and Opus alone 5 runs each to compare with.
 
 - **It cost 61% less than Opus alone** and 52% less than Opus plus Haiku, with every hidden test passing.
 - **The review caught what Haiku left out:** a release note, a missing index, a missed bug, a race condition.
@@ -44,9 +44,20 @@ Part 1 of 3 is done: Haiku does a coding task, then a fresh Opus session reviews
 - **The review setup is slower:** about 40% more wall time than Opus plus Haiku (12 against 8 minutes over the four tasks), because the review waits for Haiku to finish.
 - **A v2 finding didn't hold.** Every Opus-led run in v2 flagged a symptom it couldn't reproduce. None of 15 later Opus-led runs did, Opus alone included, with the same prompt and model. It changed with the day, not the setup, and restoring the one Claude Code instruction that had changed in between didn't bring it back.
 
-Part 2, on how splitting a big review across subagents helps, is done (all 25 runs, scored blind) and will be written up soon. Part 3, with 16 Opus subagents, hasn't run yet, so these findings may change.
+**Parts 2 and 3:** the 85-page docs check split across exactly 1, 4, 8 or 16 Haiku helpers, then 16 Opus helpers, 5 runs each, scored blind against a list of 160 real errors.
 
-**[Read the v3 results so far](docs/v3-results.md)**
+- **More Haiku helpers found far more for about the same money.** 1 helper found 20 real errors per run for $1.25, 16 helpers found 86 for $1.69 (Opus $1.30, Haiku $0.39). Opus alone found 37-40 for about $4 (v2 runs, re-scored on the same list).
+- **Opus helpers didn't find more.** With the same 16 groups, Opus helpers found 89 for $8.12 (lead $1.16, helpers $6.96), almost 5 times the cost. They made fewer false claims (4 per run against 10).
+- **So splitting is what helps, not the model.** Small pieces seem to get read more carefully, and Haiku is good enough for each one.
+- **The review setup was the worst value on this big review** (50 for $3.04): the review can only check what Haiku reported.
+- **Opus alone didn't miss errors because it skipped pages or compacted its context.** It saw every page and still missed the lines.
+
+<p align="center">
+  <img src="charts/v3-splitting.png" alt="85-page docs check on buildbot, mean per run over 5 runs. 1 Haiku helper: 20 real errors, $1.25 (Opus $0.46 + Haiku $0.79), about 7 minutes. 4 Haiku helpers: 69, $2.12 (Opus $0.94 + Haiku $1.19), about 6 minutes. 8 Haiku helpers: 63, $1.63 (Opus $1.04 + Haiku $0.59), about 5 minutes. 16 Haiku helpers: 86, $1.69 (Opus $1.30 + Haiku $0.39), about 4 minutes. 16 Opus helpers: 89, $8.12 (lead $1.16 + helpers $6.96), about 4 minutes. Haiku, then Opus review: 50, $3.04 (Haiku $1.72 + Opus $1.32), about 12 minutes. For comparison, v2 runs re-scored on the same list: Opus alone 37 and 40 for $4.11, Opus plus Haiku 62 and 63 for $1.93 (Opus $1.08 + Haiku $0.85)" width="800">
+</p>
+
+
+**[Read the v3.0 results and discussion](docs/v3-results.md)**
 
 ## What I'd use today
 
@@ -54,7 +65,7 @@ Part 2, on how splitting a big review across subagents helps, is done (all 25 ru
 | --- | --- | --- |
 | A small, testable coding task you'll review yourself | **Haiku alone** | 1-12% of Opus alone's cost on five harder coding tasks, with working code in every run, in about 60% of the time |
 | Coding where care matters | **Opus delegating to Haiku** | 28% cheaper than Opus alone on those tasks, and Opus reviews the work, but a few minutes slower |
-| A big review or audit | **Opus delegating to Haiku** | Half the cost of Opus alone on an 85-page docs check, with over 60% more real errors found, and no slower |
+| A big review or audit | **Opus with many Haiku helpers, one small piece each** | On an 85-page docs check, 16 Haiku helpers found more than twice what Opus alone found, for 40% of the cost, and as much as 16 Opus helpers for a fifth of theirs |
 | Reviewing code, or anything where every case has to be covered | **Keep Opus involved** | Found all 3 planted bugs in every review run, where Haiku alone found 2 of 3 both times |
 
 <p align="center">
