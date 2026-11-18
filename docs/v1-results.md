@@ -1,6 +1,6 @@
 # v1.0 results and discussion
 
-[Back to the README](../README.md) · [v2.0 results](v2-results.md)
+[Back to the README](../README.md) · [v2.0 results](v2-results.md) · [v3.0 results](v3-results.md)
 
 **The question:** does delegating from Opus to cheaper models save money when reading code? I ran 20 tasks on three codebases (~10k, ~22k and ~52k lines), almost all reading and reviewing existing code, plus a few small edits.
 

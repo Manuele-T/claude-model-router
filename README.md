@@ -65,6 +65,7 @@ This repo is an experiment to find out. It has two parts:
 | --- | --- | --- |
 | A small, testable coding task you'll review yourself | **Haiku alone** | 1-12% of Opus alone's cost on five harder coding tasks, with working code in every run, in about 60% of the time |
 | Coding where care matters | **Opus delegating to Haiku** | 28% cheaper than Opus alone on those tasks, and Opus reviews the work, but a few minutes slower |
+| Coding where care matters, at a lower cost | **Haiku, then one Opus review** | 61% cheaper than Opus alone on four buildbot tasks, and the review caught most of what Haiku left out; a little less reliable than Opus delegating to Haiku, and about 40% slower |
 | A big review or audit | **Opus with many Haiku helpers, one small piece each** | On an 85-page docs check, 16 Haiku helpers found more than twice what Opus alone found, for 40% of the cost, and as much as 16 Opus helpers for a fifth of theirs |
 | Reviewing code, or anything where every case has to be covered | **Keep Opus involved** | Found all 3 planted bugs in every review run, where Haiku alone found 2 of 3 both times |
 
@@ -72,7 +73,7 @@ This repo is an experiment to find out. It has two parts:
   <img src="charts/haiku-alone.png" alt="Five harder coding tasks: Opus alone $4.36, spontaneous Opus $4.49, skill-routed $4.71, forced Haiku $3.16, Haiku alone $0.26, Sonnet alone $1.31, all with working code. Docs check: Opus alone $4.11 finding 36 and 38 of 92 real errors, spontaneous Opus $4.02 finding 39 and 35, skill-routed $3.88 finding 55 and 70, forced Haiku $1.93 finding 58 and 63, Haiku alone $1.93 finding 42 and 41, Sonnet alone $3.21 finding 39 and 64. Wall time per run: about 21, 22, 24, 27, 13 and 11 minutes for the coding tasks, and about 7, 9, 4, 6, 12 and 6 minutes for the docs check, in the same order" width="800">
 </p>
 
-**Treat these as strong hints, not proof.** Most setups ran twice per task, costs are API prices used as a proxy for subscription usage, and Claude Opus wrote my hidden tests and verified the errors. Three of those tests had flaws, reported in the results. Even tasks built to trip it up didn't make Haiku alone clearly fail, so I don't know where its limit is. Test on your own work.
+**Treat these as strong hints, not proof.** In v1 and v2 most setups ran twice per task (v3's ran 5 times, spread over several days), costs are API prices used as a proxy for subscription usage, and Claude Opus wrote my hidden tests and verified the errors. Three of those tests had flaws, reported in the results. Even tasks built to trip it up didn't make Haiku alone clearly fail, so I don't know where its limit is. Test on your own work.
 
 **Takeaway: cheaper tokens don't necessarily mean cheaper tasks, and the most expensive model isn't always the one doing the useful work. Measure the whole workflow.**
 

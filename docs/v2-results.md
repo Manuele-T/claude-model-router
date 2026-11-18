@@ -1,6 +1,6 @@
 # v2.0 results and discussion
 
-[Back to the README](../README.md) · [v1.0 results](v1-results.md)
+[Back to the README](../README.md) · [v1.0 results](v1-results.md) · [v3.0 results](v3-results.md)
 
 **The questions:** does delegating still pay on a much bigger codebase, does it hold when writing code, and how much of the result is Opus? That made 234 runs: 3 reading tasks on buildbot (~100k lines), 7 coding tasks scored by hidden tests, and 16 short coding tasks, 14 of them hiding a trap.
 
