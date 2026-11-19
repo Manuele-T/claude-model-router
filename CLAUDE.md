@@ -41,7 +41,7 @@ Benchmark (Phase 3): `scripts/run_bench.sh <NN> <A|B|C|D|E|F|H>` clones `SRC` (d
 
 Headless runs must use `--permission-mode auto`: the skill's log line uses `$(...)` substitutions, which `--allowedTools` prefix rules never match, so in `dontAsk` mode every log line is silently denied.
 
-The skill is also installed as a claude.ai-synced copy (`~/.claude/skills/synced/.../model-router`, shown as `anthropic-skills:model-router`). Until `SKILL.md` is edited they are identical and the synced copy is what runs; once you edit it, symlink the repo copy and remove the synced one so only one exists.
+The skill is also installed as a claude.ai-synced copy (`~/.claude/skills/synced/.../model-router`, shown as `anthropic-skills:model-router`). The synced copy (dated 2026-10-21) is what ran in every benchmark run; it differs from the repo's `SKILL.md` in three lines of wording, same meaning. Once you edit `SKILL.md`, symlink the repo copy and remove the synced one so only one exists.
 
 ## Architecture
 
