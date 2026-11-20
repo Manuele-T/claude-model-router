@@ -1,75 +1,131 @@
 ---
 name: model-router
-description: Route every subagent to the cheapest model that can do the job (Haiku, Sonnet or Opus) and log each routing decision. Use whenever a task can be split into subtasks or would benefit from delegating work to subagents, before spawning any Agent.
+description: Pick how to run a task, Opus alone, Opus with Haiku helpers, or a separate Haiku session followed by one Opus review (for that mode it hands the user two ready-to-paste prompts and stops), and log the choice. Use at the start of any coding, reading or review task bigger than a quick fix, and always before spawning any Agent.
 ---
 
 # Model Router
 
-You are the orchestrator. Your job is to plan, delegate and review — not to do bulk work yourself. Send each subtask to the cheapest model that can do it well, and log every decision.
+You are Opus. Before doing the task, pick one of three modes, say which one and why in one line, log it, then follow that mode. These rules come from benchmark runs (v1 to v3 in this skill's repo), not from guesses about which model is "good enough".
 
-## 1. Decide whether to delegate
+## 1. Overrides first
 
-- **Stay inline** (no subagent) if the whole task is tiny: a one-line fix, a direct question you can answer from what is already in context, or a single small edit.
-- **Delegate** everything else. Break the task into subtasks first, then route each subtask separately.
+- `no routing` or `don't delegate`: mode 1. Do it all yourself and log nothing.
+- `haiku only`: mode 3.
+- `use haiku`, `use sonnet` or `use opus`: mode 2, and every helper uses that model. Log the reason as `user override`.
+- `do it here` (after a mode 3 answer): mode 2 on the same task.
 
-## 2. Pick the model for each subtask
+## 2. Pick the mode
 
-Default to **Haiku**. Move up a tier only when you can name the reason.
+Go down this list and stop at the first match.
 
-| Tier | Use for | Examples |
-|---|---|---|
-| `haiku` | Mechanical work: finding, listing, counting, formatting. No judgment about code. | Find files that mention X; list a folder's structure; grep for a string; check whether a function exists; reformat a list; summarise a short, simple file |
-| `sonnet` | Anything that needs understanding or writing code or prose. | Implement a function; refactor; write or fix tests; debug an error; explain how a module works; review a diff |
-| `opus` | Hard reasoning where a mistake is expensive. | Architecture or design decisions; security-sensitive changes; ambiguous requirements; tricky concurrency or data-loss risks |
+1. **A big reading or review job: mode 2.** The result is a report, not a code change: checking docs against code, auditing many files, summarising a whole package, reviewing a large change. Anything where you would otherwise read more than about 3,000 lines yourself. A coding task in a big codebase is not this; it goes to rule 3.
+2. **A small job: mode 1.** A quick fix whose place you already know, a question answerable from a few files, a single small edit, or anything a short script can answer (counting, listing, searching). Write the script instead of reading file by file.
+3. **A coding task (a feature, a bug to find and fix, a change with tests): mode 3**, unless one of these holds, then mode 2:
+   - the user wants to stay in this session, or said `do it here`;
+   - speed matters more than cost;
+   - every case has to be covered (a review where missing one bug is costly, security-sensitive code);
+   - what the user wants is unclear and you'd have to ask before anyone could write a clear brief. (An unknown cause is fine: finding the cause of a bug is a normal Haiku task.)
+4. **Unsure: mode 2.**
 
-Rules of thumb:
-- Any subtask where the agent must **understand code and decide something** about it goes to `sonnet` or higher.
-- When a subtask could fit either of two tiers, choose the **lower** tier.
-- Prefer handling `opus`-level reasoning yourself (you are the orchestrator) rather than spawning an Opus subagent, unless the work needs a fresh, isolated context.
-- Run independent subtasks in parallel: launch several Agent calls in one message.
+State it in one line before your first tool call, and repeat it as the first line of your final answer, for example: `Mode 2 (Opus plus Haiku helpers): 85 doc pages to check against the code.`
 
-Always pass the model explicitly in the Agent call, for example:
+## 3. Mode 1: Opus alone
 
-```
-Agent(subagent_type: "Explore", model: "haiku", description: "Find config files", prompt: "...")
-Agent(subagent_type: "general-purpose", model: "sonnet", description: "Implement parser", prompt: "...")
-```
+Do the work yourself. No subagents. Log one line with model `inline`.
 
-Give every subagent a self-contained prompt: it cannot see this conversation. Include file paths, the goal, constraints and the exact format you want back.
+## 4. Mode 2: Opus plus Haiku helpers
 
-## 3. Log every decision
+You plan, split, brief and merge. Haiku helpers do the reading. Delegation is expected in this mode, not optional.
 
-Immediately before each Agent call, append one line to the routing log with Bash:
+**Split first, with a fixed split.** Before spawning anything:
+
+1. List every piece of material (files, pages, modules) and count lines (`wc -l`).
+2. Number of helpers = total lines ÷ 400, rounded up, at most 16. Count only the material being checked or summarised, not the code it's checked against.
+3. Cut the material into that many groups of about equal line count, in path order, so related pages stay together. No group over 1,500 lines.
+4. If 16 groups of 1,500 lines can't hold it (over 24,000 lines), stop and tell the user: that's bigger than anything tested. Offer to narrow the scope, or to run more than 16 helpers in batches of 16, and wait for their answer.
+5. Write the groups down, then spawn exactly one helper per group. Don't change the count after you start.
+
+**Model:** every helper uses `model: "haiku"` unless the user forced another. Don't use Sonnet or Opus helpers for reading. An Opus helper is only for a subtask that needs Opus-level judgement in a fresh, separate context. Always pass `model` explicitly on every Agent call.
+
+**Brief each helper completely.** A helper sees only its prompt. Put in it:
+
+- its exact files or pages, and nothing else to read beyond what it must check against;
+- what to check or do, and what you already know (paths, names, facts you found), so it doesn't re-read what you read;
+- the exact format to return (for a review: file, line, the claim, what the code says, where in the code);
+- for reading jobs: report only, change nothing.
+
+Start independent helpers in parallel, several Agent calls in one message.
+
+**Coding in mode 2:** you read enough to plan, give helpers scoped pieces (find where something lives, write one function with its test, update one doc page), then review the whole diff yourself, run the tests, and add what helpers tend to skip: docs, a release note if the project keeps them, a migration or index when speed was asked for.
+
+**Merge and check:**
+
+- Read every result. Check each finding against the code before keeping it, and drop what you can't confirm. Many small helpers find more but also make more false claims.
+- If a helper's result is wrong, empty or clearly weak, do that piece yourself. Log it with reason `escalated: <what went wrong>`. Don't loop and don't step through Sonnet.
+
+**The final answer is the whole report.** Give the complete, merged result in your last message, in one piece. Never end with only an addendum, a correction or a note about one group: if you need to add something after writing the report, write the whole report again with it included.
+
+## 5. Mode 3: Haiku only, then one Opus review
+
+A skill can't switch this session to Haiku, so in this mode you don't do the task. You write two prompts for the user and stop.
+
+1. Read only enough to brief well: where the relevant code is, how tests run, project conventions. Don't start the work.
+2. Get the starting point: `git rev-parse HEAD` and `git status --short`. If the folder isn't a git repo or has uncommitted changes, say so and suggest committing first, so the review can compare against a clean start.
+3. Write the **Haiku prompt**. It must be complete, since that session starts cold and sees only this prompt and the project's CLAUDE.md:
+   - the user's task, word for word;
+   - what you already found: files, functions, conventions, how to run the tests;
+   - what done looks like: working code, tests that pass, docs and a release note if the project keeps them;
+   - "Leave your changes uncommitted. End with a final answer that says what you changed, how you tested it, and anything you didn't do."
+4. Write the **Opus review prompt**, filled in except for the last part:
+
+   ```
+   Another session was given the task below and has finished working on it in this directory. It started from commit <starting commit>. Review its work: check its changes against that commit (git status, git diff <starting commit>) and its final answer, against what the task asks. Fix anything that is wrong or missing, then give your own final answer to the task.
+
+   Task:
+   <the user's task, word for word>
+
+   The other session's final answer:
+   <paste the Haiku session's final answer here; if you don't have it, review from the diff alone>
+   ```
+
+5. Save both, so a script can pick them up later:
+
+   ```bash
+   d=~/.claude/model-router/handoff/$(basename "$PWD")-$(date -u +%Y%m%dT%H%M%SZ) && mkdir -p "$d" && cat > "$d/haiku-prompt.md" <<'ROUTER_PROMPT_END'
+   <Haiku prompt>
+   ROUTER_PROMPT_END
+   cat > "$d/review-prompt.md" <<'ROUTER_PROMPT_END'
+   <Opus review prompt>
+   ROUTER_PROMPT_END
+   echo "$d"
+   ```
+
+6. Show the user, in this order and nothing more:
+   - the mode line;
+   - the Haiku prompt in a fenced block headed `Haiku prompt`, and the review prompt in one headed `Opus review prompt`;
+   - where they're saved;
+   - how to run it: in this folder, `claude --model haiku "$(cat <dir>/haiku-prompt.md)"`, then back here paste the review prompt with Haiku's final answer filled in;
+   - this line: `Both steps run on your normal Claude Code login. A script that runs the Haiku step for you would bill an API key instead.`
+   - `Say "do it here" to run it in this session with Haiku helpers instead.`
+7. Stop. Don't do the task unless the user says `do it here`.
+
+## 6. Log every decision
+
+Before each Agent call, and once per task for modes 1 and 3, append one line with Bash:
 
 ```bash
-mkdir -p ~/.claude/model-router && echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | $(basename "$PWD") | <model> | <short task description> | <reason>" >> ~/.claude/model-router/routing.log
+mkdir -p ~/.claude/model-router && echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | $(basename "$PWD") | <mode> | <model> | <short task description> | <reason>" >> ~/.claude/model-router/routing.log
 ```
 
-- `<model>` is exactly `haiku`, `sonnet` or `opus`.
-- `<short task description>` must match the Agent call's `description` field word for word, so the verifier can pair them.
-- `<reason>` is a few words, e.g. `mechanical lookup`, `needs code comprehension`, `security-sensitive`.
-- Do not use the `|` character inside the description or reason.
+- `<mode>` is exactly `opus-alone`, `opus+haiku` or `haiku-only`.
+- `<model>` is `inline` for mode 1, `haiku-session` for mode 3, and the helper's model (`haiku`, `sonnet` or `opus`) for each helper in mode 2.
+- `<short task description>` matches the Agent call's `description` field word for word.
+- `<reason>` is a few words: `small fix`, `85 pages, group 3 of 16`, `coding task`, `user override`, `escalated: empty result`.
+- Don't use the `|` character inside the description or reason.
 
-Also log tasks you keep inline, with model `inline`:
+## 7. Never
 
-```bash
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | $(basename "$PWD") | inline | <task> | <reason>" >> ~/.claude/model-router/routing.log
-```
-
-## 4. Review results and escalate on failure
-
-When a subagent returns:
-- Check the result actually answers the subtask. Do not pass along output you have not read.
-- If a `haiku` result is wrong, empty or clearly low quality, **re-run the same subtask once on `sonnet`** and log it with reason `escalated: <what went wrong>`.
-- If a `sonnet` result fails, handle it yourself or ask the user. Do not loop.
-
-## 5. User overrides
-
-- "no routing" or "don't delegate" → do everything inline, log nothing.
-- "use haiku" / "use sonnet" / "use opus" → every subagent in this task uses the named model; log the reason as `user override`.
-
-## 6. Never
-
-- Never change `CLAUDE_CODE_SUBAGENT_MODEL` or any settings file.
-- Never write routing rules into the project's CLAUDE.md.
-- Never skip the log line — the experiment depends on it.
+- Never change `CLAUDE_CODE_SUBAGENT_MODEL` or any settings file. That variable silently overrides every helper's model.
+- Never write these rules into the project's CLAUDE.md.
+- Never start a `claude` session yourself in mode 3. The user runs it.
+- Never skip the log line.

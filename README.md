@@ -4,7 +4,7 @@ Does delegating work to cheaper models actually save money?
 
 This repo is an experiment to find out. It has two parts:
 
-- **A Claude Code skill** (`skills/model-router/SKILL.md`) that makes Opus the manager, handing work to cheaper subagents and logging every decision.
+- **A Claude Code skill** (`skills/model-router/SKILL.md`) that picks one of three ways to run a task (Opus alone, Opus with Haiku helpers, or a Haiku session then one Opus review) and logs every choice.
 - **A Python checker** (`scripts/verify_models.py`) that reads Claude Code's own transcripts to prove which model actually ran and how many tokens each one used.
 
 ## The experiments
@@ -86,7 +86,7 @@ ln -s ~/Documents/Coding/claude-model-router/skills/model-router ~/.claude/skill
 python3 scripts/verify_models.py --since 2026-10-25
 ```
 
-Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.` to turn it off. Per-run numbers are in [`data/results.md`](data/results.md).
+Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.` to turn it off. Since v3.0 the skill follows the v1-v3 results; tag `v3.0` has the version the benchmarks ran. Per-run numbers are in [`data/results.md`](data/results.md).
 
 ## Credits
 
