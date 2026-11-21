@@ -88,6 +88,14 @@ python3 scripts/verify_models.py --since 2026-10-25
 
 Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.` to turn it off. Since v3.0 the skill follows the v1-v3 results; tag `v3.0` has the version the benchmarks ran. Per-run numbers are in [`data/results.md`](data/results.md).
 
+**Where it works:**
+
+- **Claude Code in a terminal, and the Code tab of the Claude desktop app.** Both load skills from `~/.claude/skills/` on your machine.
+- **Local sessions only.** Cloud sessions (claude.ai/code) can't see your `~/.claude/skills/` folder, so the skill isn't there. Everyone who wants it installs it on their own machine.
+- **Not in regular claude.ai chats.** They can't start subagents or sessions, so the skill has nothing to do there. Don't upload it to claude.ai: a synced copy is a frozen snapshot that would load next to your local one.
+
+**Mode 3 (the Haiku handoff) in the desktop app:** the skill gives you a terminal command (`claude --model haiku "$(cat .../haiku-prompt.md)"`). Run it in the app's Terminal panel, or start a new Code session with Haiku picked in the model menu and paste the contents of `haiku-prompt.md` as the first message. Then paste the review prompt back into the first session. Both ways should work; neither has been run end to end yet.
+
 ## Use at your own risk
 
 This applies to any skill, script or other file in this repo, in any version, past or future:
