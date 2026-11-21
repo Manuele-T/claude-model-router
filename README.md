@@ -88,6 +88,15 @@ python3 scripts/verify_models.py --since 2026-10-25
 
 Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.` to turn it off. Since v3.0 the skill follows the v1-v3 results; tag `v3.0` has the version the benchmarks ran. Per-run numbers are in [`data/results.md`](data/results.md).
 
+## Use at your own risk
+
+This applies to any skill, script or other file in this repo, in any version, past or future:
+
+- **It spends usage on your account.** The skill starts subagents and sessions that count toward your Claude plan's limits. Any script that uses an API key bills that key. Set a spend limit on the key first.
+- **It runs commands and changes files in your project.** Try it on a throwaway copy or a clean git branch first, and read what it does before you approve it.
+- **The results are measurements, not promises.** The savings and accuracy in the results pages come from my own runs on specific tasks. Yours may differ.
+- **No warranty.** Everything here is provided as is, under the [MIT license](LICENSE). I'm not responsible for costs, lost work or any other damage from using it.
+
 ## Credits
 
 The routing skill's design (default to Haiku, escalate only with a reason, a routing log, user overrides) follows [Maleko91/claude-code-adaptive-subagents](https://github.com/Maleko91/claude-code-adaptive-subagents), which reports 3-15x token savings. The `SKILL.md` here was written separately. What this repo adds is the checker, which verifies which model actually ran, and the head-to-head comparison against forced Opus.
