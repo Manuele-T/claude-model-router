@@ -13,6 +13,7 @@ You are Opus. Before doing the task, pick one of three modes, say which one and 
 - `haiku only`: mode 3.
 - `use haiku`, `use sonnet` or `use opus`: mode 2, and every helper uses that model. Log the reason as `user override`.
 - `do it here` (after a mode 3 answer): mode 2 on the same task.
+- `Follow <handoff folder>/review-prompt.md`: the mode 3 review step (end of section 5).
 
 ## 2. Pick the mode
 
@@ -67,47 +68,71 @@ Start independent helpers in parallel, several Agent calls in one message.
 
 ## 5. Mode 3: Haiku only, then one Opus review
 
-A skill can't switch this session to Haiku, so in this mode you don't do the task. You write two prompts for the user and stop.
+A skill can't switch this session to Haiku, so in this mode you don't do the task. You save two prompts for the user, tell them exactly what to run, and stop.
 
 1. Read only enough to brief well: where the relevant code is, how tests run, project conventions. Don't start the work.
-2. Get the starting point: `git rev-parse HEAD` and `git status --short`. If the folder isn't a git repo or has uncommitted changes, say so and suggest committing first, so the review can compare against a clean start.
+2. Get the starting point and make the handoff folder, in one Bash call:
+
+   ```bash
+   git rev-parse HEAD && git status --short && pwd && d=~/.claude/model-router/handoff/$(basename "$PWD")-$(date -u +%Y%m%dT%H%M%SZ) && mkdir -p "$d" && echo "$d"
+   ```
+
+   If the folder isn't a git repo or has uncommitted changes, say so and suggest committing first, so the review can compare against a clean start. Use the printed folder path, written out in full, everywhere below as `<dir>`, and the printed working directory as `<project>`.
 3. Write the **Haiku prompt**. It must be complete, since that session starts cold and sees only this prompt and the project's CLAUDE.md:
    - the user's task, word for word;
    - what you already found: files, functions, conventions, how to run the tests;
    - what done looks like: working code, tests that pass, docs and a release note if the project keeps them;
-   - "Leave your changes uncommitted. End with a final answer that says what you changed, how you tested it, and anything you didn't do."
-4. Write the **Opus review prompt**, filled in except for the last part:
+   - "Leave your changes uncommitted. When you're done, write your final answer (what you changed, how you tested it, and anything you didn't do) to `<dir>/haiku-answer.md`, then show the same text as your last message."
+4. Write the **Opus review prompt**:
 
    ```
-   Another session was given the task below and has finished working on it in this directory. It started from commit <starting commit>. Review its work: check its changes against that commit (git status, git diff <starting commit>) and its final answer, against what the task asks. Fix anything that is wrong or missing, then give your own final answer to the task.
+   Another session was given the task below and has finished working on it in <project>. It started from commit <starting commit>. Its final answer is in <dir>/haiku-answer.md; if that file is missing, review from the diff alone. Review its work: check its changes against that commit (git status, git diff <starting commit>) and its final answer, against what the task asks. Fix anything that is wrong or missing, then give your own final answer to the task.
 
    Task:
    <the user's task, word for word>
-
-   The other session's final answer:
-   <paste the Haiku session's final answer here; if you don't have it, review from the diff alone>
    ```
 
-5. Save both, so a script can pick them up later:
+5. Save both in `<dir>`, so a script can pick them up later:
 
    ```bash
-   d=~/.claude/model-router/handoff/$(basename "$PWD")-$(date -u +%Y%m%dT%H%M%SZ) && mkdir -p "$d" && cat > "$d/haiku-prompt.md" <<'ROUTER_PROMPT_END'
+   cat > "<dir>/haiku-prompt.md" <<'ROUTER_PROMPT_END'
    <Haiku prompt>
    ROUTER_PROMPT_END
-   cat > "$d/review-prompt.md" <<'ROUTER_PROMPT_END'
+   cat > "<dir>/review-prompt.md" <<'ROUTER_PROMPT_END'
    <Opus review prompt>
    ROUTER_PROMPT_END
-   echo "$d"
+   ls "<dir>"
    ```
 
-6. Show the user, in this order and nothing more:
-   - the mode line;
-   - the Haiku prompt in a fenced block headed `Haiku prompt`, and the review prompt in one headed `Opus review prompt`;
-   - where they're saved;
-   - how to run it: in this folder, `claude --model haiku "$(cat <dir>/haiku-prompt.md)"`, then back here paste the review prompt with Haiku's final answer filled in;
-   - this line: `Both steps run on your normal Claude Code login. A script that runs the Haiku step for you would bill an API key instead.`
-   - `Say "do it here" to run it in this session with Haiku helpers instead.`
+6. Show the user exactly this, filled in, and nothing more. Use full paths, never `~` shortened or `...`, and put each command in its own fenced block so it can be copied in one go:
+
+   ````
+   <the mode line>
+
+   Haiku will: <2 to 4 short lines on what the Haiku prompt asks for>. Full prompts: <dir>
+
+   **Step 1. Open a second terminal** (in the desktop app, a new Terminal tab). Keep this session open. Run:
+
+   ```bash
+   cd <project> && claude --model haiku "$(cat <dir>/haiku-prompt.md)"
+   ```
+
+   Check the banner says Haiku. When it asks to write `haiku-answer.md` in the handoff folder, say yes. When it has finished, type `/exit`.
+
+   **Step 2. Come back to this session** and paste this line:
+
+   ```
+   Follow <dir>/review-prompt.md
+   ```
+
+   Both steps run on your normal Claude Code login. A script that runs the Haiku step for you would bill an API key instead.
+
+   Say "do it here" to run it in this session with Haiku helpers instead.
+   ````
+
 7. Stop. Don't do the task unless the user says `do it here`.
+
+**The review step.** When the user later says `Follow <dir>/review-prompt.md` (or pastes a review prompt), that's the second half of mode 3, not a new task: read that file and do what it says yourself. Don't pick a mode again, don't spawn helpers, don't write a new handoff. Log one line with mode `haiku-only`, model `review`.
 
 ## 6. Log every decision
 
@@ -118,7 +143,7 @@ mkdir -p ~/.claude/model-router && echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | $(base
 ```
 
 - `<mode>` is exactly `opus-alone`, `opus+haiku` or `haiku-only`.
-- `<model>` is `inline` for mode 1, `haiku-session` for mode 3, and the helper's model (`haiku`, `sonnet` or `opus`) for each helper in mode 2.
+- `<model>` is `inline` for mode 1, `haiku-session` for the mode 3 handoff, `review` for the mode 3 review, and the helper's model (`haiku`, `sonnet` or `opus`) for each helper in mode 2.
 - `<short task description>` matches the Agent call's `description` field word for word.
 - `<reason>` is a few words: `small fix`, `85 pages, group 3 of 16`, `coding task`, `user override`, `escalated: empty result`.
 - Don't use the `|` character inside the description or reason.
