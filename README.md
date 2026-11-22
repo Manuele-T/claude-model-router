@@ -94,7 +94,7 @@ Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.
 - **Local sessions only.** Cloud sessions (claude.ai/code) can't see your `~/.claude/skills/` folder, so the skill isn't there. Everyone who wants it installs it on their own machine.
 - **Not in regular claude.ai chats.** They can't start subagents or sessions, so the skill has nothing to do there. Don't upload it to claude.ai: a synced copy is a frozen snapshot that would load next to your local one.
 
-**Mode 3 (the Haiku handoff):** the skill gives you a terminal command (`claude --model haiku "$(cat .../haiku-prompt.md)"`). Run it in a second terminal (in the desktop app, a second tab of the Terminal panel), and keep the first session open. Haiku saves its final answer next to the prompts. When it's done, paste the one line the skill gives you (`Follow .../review-prompt.md`) into the first session for the Opus review. The loop has been run end to end once, by hand, on a small task.
+**Mode 3 (the Haiku handoff):** the skill gives you a terminal command (`claude --model haiku "$(cat .../haiku-prompt.md)"`). Run it in a second terminal (in the desktop app, a second tab of the Terminal panel), and keep the first session open. Haiku saves its final answer next to the prompts, and the first session notices it and starts the Opus review by itself (it waits up to 60 minutes; if it doesn't start, paste the `Follow .../review-prompt.md` line it gave you). The handoff and review have been run end to end by hand on a small task; the automatic start of the review is new and not tested yet.
 
 ## Use at your own risk
 

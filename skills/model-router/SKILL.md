@@ -1,6 +1,6 @@
 ---
 name: model-router
-description: Pick how to run a task, Opus alone, Opus with Haiku helpers, or a separate Haiku session followed by one Opus review (for that mode it hands the user two ready-to-paste prompts and stops), and log the choice. Use at the start of any coding, reading or review task bigger than a quick fix, and always before spawning any Agent.
+description: Pick how to run a task, Opus alone, Opus with Haiku helpers, or a separate Haiku session followed by one Opus review (for that mode it hands the user a ready-to-paste Haiku command, then reviews Haiku's work when it's done), and log the choice. Use at the start of any coding, reading or review task bigger than a quick fix, and always before spawning any Agent.
 ---
 
 # Model Router
@@ -68,7 +68,7 @@ Start independent helpers in parallel, several Agent calls in one message.
 
 ## 5. Mode 3: Haiku only, then one Opus review
 
-A skill can't switch this session to Haiku, so in this mode you don't do the task. You save two prompts for the user, tell them exactly what to run, and stop.
+A skill can't switch this session to Haiku, so in this mode you don't do the task. You save two prompts for the user, tell them exactly what to run, wait in the background for Haiku's answer, then review it.
 
 1. Read only enough to brief well: where the relevant code is, how tests run, project conventions. Don't start the work.
 2. Get the starting point and make the handoff folder, in one Bash call:
@@ -104,7 +104,7 @@ A skill can't switch this session to Haiku, so in this mode you don't do the tas
    ls "<dir>"
    ```
 
-6. Show the user exactly this, filled in, and nothing more. Use full paths, never `~` shortened or `...`, and put each command in its own fenced block so it can be copied in one go:
+6. Show the user exactly this, filled in, and nothing more. Use full paths, never `~` shortened or `...`, and put each command in its own fenced block so it can be copied in one go. For the Haiku prompt block, use a fence longer than any backtick run inside the prompt (for example four or five backticks), so the whole prompt copies as one piece:
 
    ````
    <the mode line>
@@ -117,9 +117,13 @@ A skill can't switch this session to Haiku, so in this mode you don't do the tas
    cd <project> && claude --model haiku "$(cat <dir>/haiku-prompt.md)"
    ```
 
-   Check the banner says Haiku. When it asks to write `haiku-answer.md` in the handoff folder, say yes. When it has finished, type `/exit`.
+   Check the banner says Haiku. When it asks to write `haiku-answer.md` in the handoff folder, say yes. When it has finished, type `/exit`. (This command always starts a fresh Haiku session, so there's nothing to clear.)
 
-   **Step 2. Come back to this session** and paste this line:
+   **Or, in an open Haiku chat** (for example a desktop app session with Haiku picked, in <project>): if the chat isn't brand new, first type `/clear` on its own and press Enter. Then copy everything in the block below and paste it as a separate message:
+
+   <the full Haiku prompt, exactly as saved in haiku-prompt.md, in one fenced block>
+
+   **Step 2. Nothing to do here.** I'm waiting for Haiku's answer (up to 60 minutes) and will start the review by myself when it's saved. Keep this session open. If I haven't started after Haiku finishes, paste this line:
 
    ```
    Follow <dir>/review-prompt.md
@@ -130,9 +134,16 @@ A skill can't switch this session to Haiku, so in this mode you don't do the tas
    Say "do it here" to run it in this session with Haiku helpers instead.
    ````
 
-7. Stop. Don't do the task unless the user says `do it here`.
+7. Start the wait, as a **background** Bash command (`run_in_background`), so this session stays free and you're woken up when it ends:
 
-**The review step.** When the user later says `Follow <dir>/review-prompt.md` (or pastes a review prompt), that's the second half of mode 3, not a new task: read that file and do what it says yourself. Don't pick a mode again, don't spawn helpers, don't write a new handoff. Log one line with mode `haiku-only`, model `review`.
+   ```bash
+   for i in $(seq 720); do [ -s "<dir>/haiku-answer.md" ] && sleep 5 && echo "haiku-answer ready" && exit 0; sleep 5; done; echo "no haiku-answer after 60 minutes"; exit 1
+   ```
+
+   Then end your turn. Don't do the task yourself unless the user says `do it here`.
+8. When the wait ends: if it printed `haiku-answer ready`, do the review step below right away, without being asked. If it timed out, say so in one line and remind the user of the `Follow <dir>/review-prompt.md` line.
+
+**The review step.** When your background wait reports `haiku-answer ready`, or the user says `Follow <dir>/review-prompt.md` (or pastes a review prompt), that's the second half of mode 3, not a new task: read that file and do what it says yourself. Don't pick a mode again, don't spawn helpers, don't write a new handoff. Log one line with mode `haiku-only`, model `review`.
 
 ## 6. Log every decision
 
