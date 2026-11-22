@@ -14,6 +14,8 @@ You are Opus. Before doing the task, pick one of three modes, say which one and 
 - `use haiku`, `use sonnet` or `use opus`: mode 2, and every helper uses that model. Log the reason as `user override`.
 - `do it here` (after a mode 3 answer): mode 2 on the same task.
 - `Follow <handoff folder>/review-prompt.md`: the mode 3 review step (end of section 5).
+- A request for a coding plan: read `plan-guide.md` in this skill's folder and follow it (mode 1).
+- `Do chunk <n> of PLAN.md` (or another plan file): read that chunk and the plan's shared rules; the chunk is the task. Pick the mode with section 2, and a Risk entry counts as a reason for mode 2. When the chunk is finished (in any mode; in mode 3, after the review), run its Done check and set its `Status: done`.
 
 ## 2. Pick the mode
 
@@ -79,7 +81,7 @@ A skill can't switch this session to Haiku, so in this mode you don't do the tas
 
    If the folder isn't a git repo or has uncommitted changes, say so and suggest committing first, so the review can compare against a clean start. Use the printed folder path, written out in full, everywhere below as `<dir>`, and the printed working directory as `<project>`.
 3. Write the **Haiku prompt**. It must be complete, since that session starts cold and sees only this prompt and the project's CLAUDE.md:
-   - the user's task, word for word;
+   - the user's task, word for word (for a plan chunk: the whole chunk plus the plan's shared rules);
    - what you already found: files, functions, conventions, how to run the tests;
    - what done looks like: working code, tests that pass, docs and a release note if the project keeps them;
    - "Leave your changes uncommitted. When you're done, write your final answer (what you changed, how you tested it, and anything you didn't do) to `<dir>/haiku-answer.md`, then show the same text as your last message."
@@ -89,7 +91,7 @@ A skill can't switch this session to Haiku, so in this mode you don't do the tas
    Another session was given the task below and has finished working on it in <project>. It started from commit <starting commit>. Its final answer is in <dir>/haiku-answer.md; if that file is missing, review from the diff alone. Review its work: check its changes against that commit (git status, git diff <starting commit>) and its final answer, against what the task asks. Fix anything that is wrong or missing, then give your own final answer to the task.
 
    Task:
-   <the user's task, word for word>
+   <the user's task, word for word (for a plan chunk: the whole chunk plus the plan's shared rules)>
    ```
 
 5. Save both in `<dir>`, so a script can pick them up later:

@@ -94,7 +94,28 @@ Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.
 - **Local sessions only.** Cloud sessions (claude.ai/code) can't see your `~/.claude/skills/` folder, so the skill isn't there. Everyone who wants it installs it on their own machine.
 - **Not in regular claude.ai chats.** They can't start subagents or sessions, so the skill has nothing to do there. Don't upload it to claude.ai: a synced copy is a frozen snapshot that would load next to your local one.
 
-**Mode 3 (the Haiku handoff):** the skill gives you a terminal command (`claude --model haiku "$(cat .../haiku-prompt.md)"`). Run it in a second terminal (in the desktop app, a second tab of the Terminal panel), and keep the first session open. Haiku saves its final answer next to the prompts, and the first session notices it and starts the Opus review by itself (it waits up to 60 minutes; if it doesn't start, paste the `Follow .../review-prompt.md` line it gave you). The handoff and review have been run end to end by hand on a small task; the automatic start of the review is new and not tested yet.
+**Mode 3 (the Haiku handoff):** the skill gives you a terminal command (`claude --model haiku "$(cat .../haiku-prompt.md)"`). Run it in a second terminal (in the desktop app, a second tab of the Terminal panel), and keep the first session open. Haiku saves its final answer next to the prompts, and the first session notices it and starts the Opus review by itself (it waits up to 60 minutes; if it doesn't start, paste the `Follow .../review-prompt.md` line it gave you). In an open Haiku chat (for example a desktop app session), type `/clear` first if it isn't new, then paste the full Haiku prompt the skill prints. The automatic review has worked in desktop app sessions on a small task; it hasn't been tried in a terminal session yet.
+
+## Recommended plan guide
+
+**Why:** the skill decides per task, so it does best when the work arrives in the right pieces. A Haiku session starts cold and sees only its prompt, so each piece has to stand on its own. Every piece sent to Haiku also costs one Opus handoff and one Opus review, and on the API those two are most of the bill, so tiny pieces waste money. And a step that comes with a check it can run is easier for Haiku to finish and for Opus to review. Anthropic's own [best practices](https://code.claude.com/docs/en/best-practices) say much the same (write the plan to a file, give each piece a pass or fail check, review against the plan) but don't give a format. This is mine. It's a recommendation, not measured yet.
+
+Ask Opus to write the plan to a file (for example `PLAN.md`) as **chunks**, where each chunk is one task for the skill:
+
+- **Goal:** one or two lines.
+- **Files or area:** where the work happens.
+- **Done:** a check you can run, like a test or a command, and what it should show.
+- **Depends on:** which chunks must be finished first.
+- **Risk:** anything security-sensitive, data migrations or an unclear ask. These go to Opus, not Haiku.
+
+Rules of thumb:
+
+- Group small related steps into one chunk: one handoff and one review instead of three.
+- Keep risky steps, and steps that need another chunk's result, in chunks of their own.
+- Keep each chunk to a few steps. Very long Haiku sessions cost more per request once its context passes about 100k tokens.
+- Commit after each reviewed chunk, so the next handoff starts from a clean project.
+
+The skill follows this format when you ask it for a plan (`skills/model-router/plan-guide.md`). Then work through it one chunk at a time: `Use the model-router skill. Do chunk 3 of PLAN.md.`
 
 ## Use at your own risk
 
