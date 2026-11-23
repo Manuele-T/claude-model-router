@@ -94,7 +94,7 @@ A skill can't switch this session to Haiku, so in this mode you don't do the tas
    <the user's task, word for word (for a plan chunk: the whole chunk plus the plan's shared rules)>
    ```
 
-5. Save both in `<dir>`, so a script can pick them up later:
+5. Save both in `<dir>`, plus a short runner script, so a script can pick them up later and the user's command stays short:
 
    ```bash
    cat > "<dir>/haiku-prompt.md" <<'ROUTER_PROMPT_END'
@@ -103,38 +103,45 @@ A skill can't switch this session to Haiku, so in this mode you don't do the tas
    cat > "<dir>/review-prompt.md" <<'ROUTER_PROMPT_END'
    <Opus review prompt>
    ROUTER_PROMPT_END
-   ls "<dir>"
+   printf '%s\n' '#!/usr/bin/env bash' "cd '<project>' && exec claude --model haiku \"\$(cat '<dir>/haiku-prompt.md')\"" > ~/.claude/model-router/next.sh
+   ls "<dir>" && cat ~/.claude/model-router/next.sh
    ```
 
-6. Show the user exactly this, filled in, and nothing more. Use full paths, never `~` shortened or `...`, and put each command in its own fenced block so it can be copied in one go. For the Haiku prompt block, use a fence longer than any backtick run inside the prompt (for example four or five backticks), so the whole prompt copies as one piece:
+   `~/.claude/model-router/next.sh` always points at the latest handoff, so the user types the same short command every time.
+
+6. Show the user exactly this, filled in, and nothing more. Keep it short and in this order, so the two steps are the first thing they see. Put each command in its own fenced block. For the Haiku prompt block, use a fence longer than any backtick run inside the prompt (for example four or five backticks), so the whole prompt copies as one piece:
 
    ````
    <the mode line>
 
-   Haiku will: <2 to 4 short lines on what the Haiku prompt asks for>. Full prompts: <dir>
+   Haiku will: <2 to 4 short lines on what the Haiku prompt asks for>.
 
-   **Step 1. Open a second terminal** (in the desktop app, a new Terminal tab). Keep this session open. Run:
+   **Step 1. Start Haiku** in a second terminal (desktop app: a new Terminal tab):
 
    ```bash
-   cd <project> && claude --model haiku "$(cat <dir>/haiku-prompt.md)"
+   bash ~/.claude/model-router/next.sh
    ```
 
-   Check the banner says Haiku. When it asks to write `haiku-answer.md` in the handoff folder, say yes. When it has finished, type `/exit`. (This command always starts a fresh Haiku session, so there's nothing to clear.)
+   Check the banner says Haiku. Say yes when it asks to write `haiku-answer.md`. Type `/exit` when it's done.
 
-   **Or, in an open Haiku chat** (for example a desktop app session with Haiku picked, in <project>): if the chat isn't brand new, first type `/clear` on its own and press Enter. Then copy everything in the block below and paste it as a separate message:
+   **Step 2. Nothing to do.** Keep this session open: I start the review by myself as soon as Haiku saves its answer (I wait up to 60 minutes).
+
+   ---
+
+   **Using an open Haiku chat instead** (desktop app, Haiku picked, folder <project>): if the chat isn't new, type `/clear` on its own first. Then paste this as one message:
 
    <the full Haiku prompt, exactly as saved in haiku-prompt.md, in one fenced block>
 
-   **Step 2. Nothing to do here.** I'm waiting for Haiku's answer (up to 60 minutes) and will start the review by myself when it's saved. Keep this session open. If I haven't started after Haiku finishes, paste this line:
+   **If the review doesn't start** after Haiku finishes, paste:
 
    ```
    Follow <dir>/review-prompt.md
    ```
 
-   Both steps run on your normal Claude Code login. A script that runs the Haiku step for you would bill an API key instead.
-
-   Say "do it here" to run it in this session with Haiku helpers instead.
+   Files: <dir>. Everything runs on your normal Claude Code login. Say "do it here" to run it in this session with Haiku helpers instead.
    ````
+
+   In mode 3, skip the separate mode line before your first tool call: this output already starts with it.
 
 7. Start the wait, as a **background** Bash command (`run_in_background`), so this session stays free and you're woken up when it ends:
 
