@@ -1,6 +1,6 @@
 ---
 name: model-router
-description: Pick how to run a task, Opus alone, Opus with Haiku helpers, or a separate Haiku session followed by one Opus review (for that mode it hands the user a ready-to-paste Haiku command, then reviews Haiku's work when it's done), and log the choice. Use at the start of any coding, reading or review task bigger than a quick fix, and always before spawning any Agent.
+description: Pick how to run a task, Opus alone, Opus with Haiku helpers, or a separate Haiku session followed by one Opus review (for that mode it hands the user a ready-to-paste Haiku command, or with `haiku api` on an API key starts Haiku itself, then reviews Haiku's work when it's done), and log the choice. Use at the start of any coding, reading or review task bigger than a quick fix, and always before spawning any Agent.
 ---
 
 # Model Router
@@ -11,6 +11,7 @@ You are Opus. Before doing the task, pick one of three modes, say which one and 
 
 - `no routing` or `don't delegate`: mode 1. Do it all yourself and log nothing.
 - `haiku only`: mode 3.
+- `haiku api`: mode 3, and Haiku runs as an API run (end of section 5). `haiku manual`: mode 3 as a manual run, even if the mode file says `api`.
 - `use haiku`, `use sonnet` or `use opus`: mode 2, and every helper uses that model. Log the reason as `user override`.
 - `do it here` (after a mode 3 answer): mode 2 on the same task.
 - `Follow <handoff folder>/review-prompt.md`: the mode 3 review step (end of section 5).
@@ -104,10 +105,12 @@ A skill can't switch this session to Haiku, so in this mode you don't do the tas
    <Opus review prompt>
    ROUTER_PROMPT_END
    printf '%s\n' '#!/usr/bin/env bash' "cd '<project>' && exec claude --model haiku \"\$(cat '<dir>/haiku-prompt.md')\"" > ~/.claude/model-router/next.sh
-   ls "<dir>" && cat ~/.claude/model-router/next.sh
+   ls "<dir>" && cat ~/.claude/model-router/next.sh; echo "mode3 file: $(cat ~/.claude/model-router/mode3 2>/dev/null || echo missing)"
    ```
 
    `~/.claude/model-router/next.sh` always points at the latest handoff, so the user types the same short command every time.
+
+   **Manual or API run.** If the user wrote `haiku api`, or the `mode3 file:` line above says `api` and the user didn't write `haiku manual`, skip steps 6 to 8 and follow "API run" below. Otherwise (the default) carry on with step 6. Never choose an API run by yourself.
 
 6. Show the user exactly this, filled in, and nothing more. Keep it short and in this order, so the two steps are the first thing they see. Put each command in its own fenced block. For the Haiku prompt block, use a fence longer than any backtick run inside the prompt (for example four or five backticks), so the whole prompt copies as one piece:
 
@@ -152,7 +155,50 @@ A skill can't switch this session to Haiku, so in this mode you don't do the tas
    Then end your turn. Don't do the task yourself unless the user says `do it here`.
 8. When the wait ends: if it printed `haiku-answer ready`, do the review step below right away, without being asked. If it timed out, say so in one line and remind the user of the `Follow <dir>/review-prompt.md` line.
 
-**The review step.** When your background wait reports `haiku-answer ready`, or the user says `Follow <dir>/review-prompt.md` (or pastes a review prompt), that's the second half of mode 3, not a new task: read that file and do what it says yourself. Don't pick a mode again, don't spawn helpers, don't write a new handoff. Log one line with mode `haiku-only`, model `review`.
+**API run (opt-in, for sessions started on an API key).** Haiku runs headless on the key, started by you, so nobody opens a second terminal.
+
+1. Check that a key is there. This prints two field names and values only, never the key:
+
+   ```bash
+   claude auth status 2>/dev/null | grep -E '"(authMethod|apiKeySource)"'
+   ```
+
+   If `authMethod` isn't `api_key` or `api_key_helper`, there's no key here: say so in one line and do the manual run (steps 6 to 8). This check shows what a `claude -p` started from here would bill, not who pays for this session, so it can't tell whether the user declined the key when starting `claude`. The user's opt-in covers that.
+2. Show the user exactly this, filled in:
+
+   ```
+   <the mode line>
+
+   Haiku will: <2 to 4 short lines on what the Haiku prompt asks for>.
+
+   Running Haiku now on your API key, in the background (Haiku capped at $0.50, up to 60 minutes). I review its work by myself when it's done. If you started this session on your subscription, stop me now and say `haiku manual`: Haiku would bill the key while I bill the subscription.
+
+   Files: <dir>.
+   ```
+
+3. Start Haiku as a **background** Bash command (`run_in_background`), with full paths, flags exactly as here. Never add `--bare` or `bypassPermissions`:
+
+   ```bash
+   cd "<project>" && timeout 3600 claude -p --model haiku --permission-mode auto --disallowedTools Skill --add-dir "<dir>" --max-budget-usd 0.50 --output-format json "$(cat "<dir>/haiku-prompt.md")" > "<dir>/haiku-run.json" 2> "<dir>/haiku-run.err"; echo "haiku exit $?"
+   ```
+
+   Then end your turn. Don't do the task yourself.
+4. When it ends, check the result:
+
+   ```bash
+   python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d.get("subtype"), d.get("is_error"), d.get("total_cost_usd"))' "<dir>/haiku-run.json"; ls -l "<dir>"; tail -5 "<dir>/haiku-run.err"
+   ```
+
+   - **Exit 0, `success`, `is_error` False:** if `haiku-answer.md` is missing or empty, save Haiku's final answer from the JSON first:
+
+     ```bash
+     python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("result") or "")' "<dir>/haiku-run.json" > "<dir>/haiku-answer.md"
+     ```
+
+     Then do the review step below right away, and add Haiku's cost (`total_cost_usd`) as one line in your final answer.
+   - **Anything else** (non-zero exit, 124 = timed out, `is_error` True, another subtype such as a budget stop, no JSON): stop. Say in one line what failed (from the subtype or `haiku-run.err`) and that any changes Haiku made are left in place. Offer `do it here`, or `Follow <dir>/review-prompt.md` to review the partial work. Don't do the task yourself and don't start Haiku again.
+
+**The review step.** When your background wait reports `haiku-answer ready`, an API run ends well, or the user says `Follow <dir>/review-prompt.md` (or pastes a review prompt), that's the second half of mode 3, not a new task: read that file and do what it says yourself. Don't pick a mode again, don't spawn helpers, don't write a new handoff. Log one line with mode `haiku-only`, model `review`.
 
 ## 6. Log every decision
 
@@ -163,7 +209,7 @@ mkdir -p ~/.claude/model-router && echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | $(base
 ```
 
 - `<mode>` is exactly `opus-alone`, `opus+haiku` or `haiku-only`.
-- `<model>` is `inline` for mode 1, `haiku-session` for the mode 3 handoff, `review` for the mode 3 review, and the helper's model (`haiku`, `sonnet` or `opus`) for each helper in mode 2.
+- `<model>` is `inline` for mode 1, `haiku-session` for the mode 3 handoff (`haiku-api` for an API run), `review` for the mode 3 review, and the helper's model (`haiku`, `sonnet` or `opus`) for each helper in mode 2.
 - `<short task description>` matches the Agent call's `description` field word for word.
 - `<reason>` is a few words: `small fix`, `85 pages, group 3 of 16`, `coding task`, `user override`, `escalated: empty result`.
 - Don't use the `|` character inside the description or reason.
@@ -172,5 +218,5 @@ mkdir -p ~/.claude/model-router && echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | $(base
 
 - Never change `CLAUDE_CODE_SUBAGENT_MODEL` or any settings file. That variable silently overrides every helper's model.
 - Never write these rules into the project's CLAUDE.md.
-- Never start a `claude` session yourself in mode 3. The user runs it.
+- Never start a `claude` session yourself in mode 3. The user runs it. The one exception is an API run the user opted into, exactly as section 5 says.
 - Never skip the log line.
