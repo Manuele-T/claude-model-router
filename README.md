@@ -86,7 +86,7 @@ ln -s ~/Documents/Coding/claude-model-router/skills/model-router ~/.claude/skill
 python3 scripts/verify_models.py --since 2026-10-25
 ```
 
-Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.` to turn it off. Since v3.0 the skill follows the v1-v3 results; tag `v3.0` has the version the benchmarks ran. Per-run numbers are in [`data/results.md`](data/results.md).
+Start a prompt with `Use the model-router skill.` to trigger it, or `no routing.` to turn it off. Short how-to (modes, handy phrases, subscription or API key): [`skill-instruction.md`](skill-instruction.md). Since v3.0 the skill follows the v1-v3 results; tag `v3.0` has the version the benchmarks ran. Per-run numbers are in [`data/results.md`](data/results.md).
 
 **Where it works:**
 
