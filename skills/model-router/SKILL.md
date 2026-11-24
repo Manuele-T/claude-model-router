@@ -95,6 +95,7 @@ A skill can't switch this session to Haiku, so in this mode you don't do the tas
    <the user's task, word for word (for a plan chunk: the whole chunk plus the plan's shared rules)>
    ```
 
+   In both prompts, refer to secret files generically ("the project's secret files"), never by file name or pattern: a guard hook may block the Bash call that saves them.
 5. Save both in `<dir>`, plus a short runner script, so a script can pick them up later and the user's command stays short:
 
    ```bash
