@@ -94,7 +94,7 @@ I cut the 85 pages into fixed groups of about equal size and told Opus to use ex
 - **One helper is too few.** It has to read everything, finds a fifth of what 16 find, and still isn't cheap: almost all its Haiku cost is at the higher price Haiku charges past 100k tokens per request. The same price step is why 4 helpers cost more than 8.
 - **The cost moves from Haiku to Opus as the split grows.** With 16 helpers, Opus is about three quarters of the bill, because it has 16 reports to check and merge. The helpers themselves get cheaper, since each one stays small.
 - **The catch is false claims.** 16 helpers made the most (10 per run, against 3 for 4 or 8 helpers). Opus merged them without catching all of them.
-- **Haiku, then Opus review was the worst value here.** It found 50 for $3.04 and varied a lot (34 to 66). One Haiku session reading 85 pages misses a lot, and a review can only check what Haiku reported.
+- **Haiku, then Opus review was poor value here.** It found 50 for $3.04 and varied a lot (34 to 66). *Correction (2026-11-25): first written as "the worst value". At 17 real errors per $ it was level with 1 helper (16), and 16 Opus helpers in Part 3 were lower (11). It was the most expensive Haiku-led setup and the slowest.* One Haiku session reading 85 pages misses a lot, and a review can only check what Haiku reported.
 - **Every run found all 20 planted errors** except the 1-helper runs (17 to 20). They don't separate the setups.
 - **For comparison** (v2 runs, re-scored blind on the same list, labelled): Opus alone found 37 and 40 for $3.96 and $4.25, and Opus plus Haiku with the skill choosing the split found 62 and 63 for $1.85 (Opus $1.04, Haiku $0.81) and $2.01 (Opus $1.12, Haiku $0.88).
 

@@ -49,7 +49,7 @@ This repo is an experiment to find out. It has two parts:
 - **More Haiku helpers found far more for about the same money.** 1 helper found 20 real errors per run for $1.25, 16 helpers found 86 for $1.69 (Opus $1.30, Haiku $0.39). Opus alone found 37-40 for about $4 (v2 runs, re-scored on the same list).
 - **Opus helpers didn't find more.** With the same 16 groups, Opus helpers found 89 for $8.12 (lead $1.16, helpers $6.96), almost 5 times the cost. They made fewer false claims (4 per run against 10).
 - **So splitting is what helps, not the model.** Small pieces seem to get read more carefully, and Haiku is good enough for each one.
-- **The review setup was the worst value on this big review** (50 for $3.04): the review can only check what Haiku reported.
+- **The review setup was poor value on this big review** (50 for $3.04, Haiku $1.72, Opus $1.32): the review can only check what Haiku reported. *(Corrected 2026-11-25 from "the worst value": per dollar it was level with 1 Haiku helper, and 16 Opus helpers were lower.)*
 - **Opus alone didn't miss errors because it skipped pages or compacted its context.** It saw every page and still missed the lines.
 
 <p align="center">
